@@ -242,6 +242,29 @@
             </select>
           </div>
         </div>
+        <div class="row3">
+          <div>
+            <label for="f-faturamento">Faturamento anual (faixa)</label>
+            <select id="f-faturamento">
+              <option value="">—</option>
+              <option>Até R$5 milhões</option>
+              <option>R$5-20 milhões</option>
+              <option>R$20-50 milhões</option>
+              <option>Acima de R$50 milhões</option>
+            </select>
+          </div>
+          <div><label for="f-num-usuarios">Nº de usuários previstos</label><input type="number" min="0" id="f-num-usuarios" placeholder="Ex: 10"></div>
+          <div>
+            <label for="f-sazonalidade">Fase da coleção</label>
+            <select id="f-sazonalidade">
+              <option value="">—</option>
+              <option>Pré-coleção / planejamento</option>
+              <option>Em produção plena</option>
+              <option>Pós-coleção / entressafra</option>
+            </select>
+          </div>
+        </div>
+        <div><label for="f-stack">Sistemas complementares (CAD, WMS, etc.)</label><input type="text" id="f-stack" placeholder="Ex: Audaces, WMS próprio..."></div>
       </div>
 
       <div class="card">
@@ -296,6 +319,22 @@
             <option value="2">2 — Compatível</option>
           </select>
         </div>
+        <div class="score-item">
+          <div><div class="crit-name">Maturidade de processo</div><div class="crit-hint">Ficha técnica estruturada ou tudo em planilha/papel?</div></div>
+          <select class="crit" data-crit="maturidade">
+            <option value="0">0 — Papel / informal</option>
+            <option value="1">1 — Planilha</option>
+            <option value="2">2 — Processo estruturado</option>
+          </select>
+        </div>
+        <div class="score-item">
+          <div><div class="crit-name">Porte da empresa</div><div class="crit-hint">Faturamento/nº de usuários compatível com o projeto</div></div>
+          <select class="crit" data-crit="porte">
+            <option value="0">0 — Porte incompatível</option>
+            <option value="1">1 — Porte limítrofe</option>
+            <option value="2">2 — Porte compatível</option>
+          </select>
+        </div>
 
         <div class="flags">
           <label class="chk"><input type="checkbox" id="flag-financeiro"> Incompatibilidade financeira grave (desqualifica mesmo com score alto)</label>
@@ -306,12 +345,18 @@
       <div class="card">
         <h2><span class="n">3</span>Resultado</h2>
         <div class="result" id="resultBox">
-          <div><span class="score-big" id="scoreBig">0</span><span class="score-max"> / 12</span></div>
+          <div><span class="score-big" id="scoreBig">0</span><span class="score-max"> / 40</span></div>
           <span class="pill" id="pill">—</span>
           <div class="action" id="actionText">Preencha a pontuação acima para ver a classificação e a próxima ação.</div>
         </div>
-        <label for="f-obs" style="margin-top:14px;">Observações comerciais</label>
+        <div class="row2" style="margin-top:14px;">
+          <div><label for="f-proxima-contato">Próximo contato</label><input type="date" id="f-proxima-contato"></div>
+          <div><label for="f-tentativas">Nº de tentativas de contato</label><input type="number" min="0" id="f-tentativas" placeholder="Ex: 2"></div>
+        </div>
+        <label for="f-obs">Observações comerciais</label>
         <textarea id="f-obs"></textarea>
+        <label for="f-obs-sucessao">Risco de sucessão/família (não pontuado)</label>
+        <textarea id="f-obs-sucessao" placeholder="Ex: decisão travada por disputa entre sócios..."></textarea>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="copy-btn" id="saveBtn" type="button" style="border-color:var(--accent); color:var(--accent); font-weight:600;">Salvar no histórico</button>
           <button class="copy-btn" id="newBtn" type="button">Nova ficha</button>
@@ -421,8 +466,11 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  var ids = ['f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia','f-obs'];
-  var crits = ['perfil','complexidade','dor','momento','decisor','investimento'];
+  var ids = ['f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
+    'f-faturamento','f-num-usuarios','f-sazonalidade','f-stack','f-obs','f-obs-sucessao','f-proxima-contato','f-tentativas'];
+  var crits = ['perfil','complexidade','dor','momento','decisor','investimento','maturidade','porte'];
+  var critWeights = { perfil:2, complexidade:2, dor:3, momento:2, decisor:3, investimento:3, maturidade:2, porte:3 };
+  var maxScore = crits.reduce(function(s,c){ return s + 2*critWeights[c]; }, 0);
   var currentEditId = null;
   var currentUserEmail = '';
   var currentLoginEmail = '';
@@ -538,7 +586,8 @@
   function computeScoreOnly(){
     var total = 0;
     crits.forEach(function(c){
-      total += parseInt(document.querySelector('.crit[data-crit="'+c+'"]').value, 10);
+      var v = parseInt(document.querySelector('.crit[data-crit="'+c+'"]').value, 10);
+      total += v * critWeights[c];
     });
     return total;
   }
@@ -550,8 +599,8 @@
           ? 'Regra de corte: incompatibilidade financeira grave. Agradeça, não avance, mantenha contato futuro.'
           : 'Regra de corte: ausência de aderência técnica. Agradeça, não avance, mantenha contato futuro.' };
     }
-    if (total >= 10) return { cls:'A', label:'Qualificado — prioridade', action:'Agendar discovery comercial com as pessoas envolvidas no processo.' };
-    if (total >= 7)  return { cls:'B', label:'Em maturação', action:'Manter contato, enviar conteúdo e retomar quando o projeto estiver mais estruturado.' };
+    if (total >= 33) return { cls:'A', label:'Qualificado — prioridade', action:'Agendar discovery comercial com as pessoas envolvidas no processo.' };
+    if (total >= 23) return { cls:'B', label:'Em maturação', action:'Manter contato, enviar conteúdo e retomar quando o projeto estiver mais estruturado.' };
     return { cls:'C', label:'Desqualificado', action:'Não priorizar esforço comercial agora. Manter contato para o futuro.' };
   }
 
@@ -585,17 +634,20 @@
     return data;
   }
 
+  var fieldToColumn = {
+    'f-empresa':'empresa', 'f-contato':'contato', 'f-cidade':'cidade', 'f-segmento':'segmento',
+    'f-erp':'erp', 'f-produto':'produto', 'f-timeline':'timeline', 'f-concorrencia':'concorrencia',
+    'f-faturamento':'faturamento_faixa', 'f-num-usuarios':'num_usuarios', 'f-sazonalidade':'sazonalidade',
+    'f-stack':'stack_atual', 'f-obs':'obs', 'f-obs-sucessao':'obs_sucessao',
+    'f-proxima-contato':'proxima_contato', 'f-tentativas':'tentativas'
+  };
+
   function applyFormData(row){
     $('f-vendedor').value = row.vendedor || '';
-    $('f-empresa').value = row.empresa || '';
-    $('f-contato').value = row.contato || '';
-    $('f-cidade').value = row.cidade || '';
-    $('f-segmento').value = row.segmento || '';
-    $('f-erp').value = row.erp || '';
-    $('f-produto').value = row.produto || '';
-    $('f-timeline').value = row.timeline || '';
-    $('f-concorrencia').value = row.concorrencia || '';
-    $('f-obs').value = row.obs || '';
+    ids.forEach(function(id){
+      var col = fieldToColumn[id];
+      $(id).value = (col && row[col] != null) ? row[col] : '';
+    });
     crits.forEach(function(c){
       document.querySelector('.crit[data-crit="'+c+'"]').value = (row['crit_'+c] != null) ? row['crit_'+c] : 0;
     });
@@ -644,10 +696,11 @@
       var item = document.createElement('div');
       item.className = 'hist-item';
       var vendedorTxt = row.vendedor ? (' · ' + row.vendedor) : '';
+      var proximoTxt = row.proxima_contato ? (' · próx. contato: ' + row.proxima_contato) : '';
       item.innerHTML =
         '<div class="hist-main">' +
           '<div class="hist-empresa">' + escapeHtml(row.empresa || 'Sem nome') + '</div>' +
-          '<div class="hist-meta">' + escapeHtml(fmtDate(row.created_at)) + escapeHtml(vendedorTxt) + '</div>' +
+          '<div class="hist-meta">' + escapeHtml(fmtDate(row.created_at)) + escapeHtml(vendedorTxt) + escapeHtml(proximoTxt) + '</div>' +
         '</div>' +
         '<div class="hist-right">' +
           '<span class="hist-score">' + (row.total != null ? row.total : '–') + '</span>' +
@@ -696,7 +749,11 @@
         vendedor: d['f-vendedor'], empresa: d['f-empresa'], contato: d['f-contato'],
         cidade: d['f-cidade'], segmento: d['f-segmento'], erp: d['f-erp'],
         produto: d['f-produto'], timeline: d['f-timeline'], concorrencia: d['f-concorrencia'],
-        obs: d['f-obs'], flag_financeiro: d.flag_financeiro, flag_aderencia: d.flag_aderencia,
+        faturamento_faixa: d['f-faturamento'], num_usuarios: d['f-num-usuarios'] || null,
+        sazonalidade: d['f-sazonalidade'], stack_atual: d['f-stack'],
+        obs: d['f-obs'], obs_sucessao: d['f-obs-sucessao'],
+        proxima_contato: d['f-proxima-contato'] || null, tentativas: d['f-tentativas'] || null,
+        flag_financeiro: d.flag_financeiro, flag_aderencia: d.flag_aderencia,
         total: d.total, classificacao: d.classificacao, classificacao_label: d.classificacao_label
       };
       crits.forEach(function(c){ record['crit_'+c] = d['crit_'+c]; });
@@ -732,9 +789,16 @@
       'ERP atual: ' + d['f-erp'],
       'Prazo de decisão: ' + d['f-timeline'],
       'Avaliando outra solução: ' + d['f-concorrencia'],
-      'Score: ' + d.total + ' / 12',
+      'Faturamento (faixa): ' + d['f-faturamento'],
+      'Nº de usuários previstos: ' + d['f-num-usuarios'],
+      'Fase da coleção: ' + d['f-sazonalidade'],
+      'Sistemas complementares: ' + d['f-stack'],
+      'Score: ' + d.total + ' / ' + maxScore,
       'Classificação: ' + d.classificacao_label,
-      'Observações: ' + d['f-obs']
+      'Próximo contato: ' + d['f-proxima-contato'],
+      'Tentativas de contato: ' + d['f-tentativas'],
+      'Observações: ' + d['f-obs'],
+      'Risco de sucessão/família: ' + d['f-obs-sucessao']
     ];
     var text = lines.join('\n');
     navigator.clipboard.writeText(text).then(function(){
