@@ -350,8 +350,21 @@
           <div class="action" id="actionText">Preencha a pontuação acima para ver a classificação e a próxima ação.</div>
         </div>
         <div class="row2" style="margin-top:14px;">
+          <div>
+            <label for="f-status">Status da ficha</label>
+            <select id="f-status">
+              <option>Rascunho</option>
+              <option>Em andamento</option>
+              <option>Ganha</option>
+              <option>Perdida</option>
+              <option>Descartada</option>
+            </select>
+          </div>
           <div><label for="f-proxima-contato">Próximo contato</label><input type="date" id="f-proxima-contato"></div>
+        </div>
+        <div class="row2">
           <div><label for="f-tentativas">Nº de tentativas de contato</label><input type="number" min="0" id="f-tentativas" placeholder="Ex: 2"></div>
+          <div></div>
         </div>
         <label for="f-obs">Observações comerciais</label>
         <textarea id="f-obs"></textarea>
@@ -467,7 +480,7 @@
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   var ids = ['f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
-    'f-faturamento','f-num-usuarios','f-sazonalidade','f-stack','f-obs','f-obs-sucessao','f-proxima-contato','f-tentativas'];
+    'f-faturamento','f-num-usuarios','f-sazonalidade','f-stack','f-obs','f-obs-sucessao','f-status','f-proxima-contato','f-tentativas'];
   var crits = ['perfil','complexidade','dor','momento','decisor','investimento','maturidade','porte'];
   var critWeights = { perfil:2, complexidade:2, dor:3, momento:2, decisor:3, investimento:3, maturidade:2, porte:3 };
   var maxScore = crits.reduce(function(s,c){ return s + 2*critWeights[c]; }, 0);
@@ -638,7 +651,7 @@
     'f-empresa':'empresa', 'f-contato':'contato', 'f-cidade':'cidade', 'f-segmento':'segmento',
     'f-erp':'erp', 'f-produto':'produto', 'f-timeline':'timeline', 'f-concorrencia':'concorrencia',
     'f-faturamento':'faturamento_faixa', 'f-num-usuarios':'num_usuarios', 'f-sazonalidade':'sazonalidade',
-    'f-stack':'stack_atual', 'f-obs':'obs', 'f-obs-sucessao':'obs_sucessao',
+    'f-stack':'stack_atual', 'f-obs':'obs', 'f-obs-sucessao':'obs_sucessao', 'f-status':'status',
     'f-proxima-contato':'proxima_contato', 'f-tentativas':'tentativas'
   };
 
@@ -646,6 +659,7 @@
     $('f-vendedor').value = row.vendedor || '';
     ids.forEach(function(id){
       var col = fieldToColumn[id];
+      if (id === 'f-status') { $(id).value = row.status || 'Rascunho'; return; }
       $(id).value = (col && row[col] != null) ? row[col] : '';
     });
     crits.forEach(function(c){
@@ -659,6 +673,7 @@
   function clearForm(){
     ids.forEach(function(id){ $(id).value = ''; });
     $('f-vendedor').value = firstNameFromEmail(currentLoginEmail);
+    $('f-status').value = 'Rascunho';
     crits.forEach(function(c){ document.querySelector('.crit[data-crit="'+c+'"]').value = '0'; });
     $('flag-financeiro').checked = false;
     $('flag-aderencia').checked = false;
@@ -705,10 +720,12 @@
         '<div class="hist-right">' +
           '<span class="hist-score">' + (row.total != null ? row.total : '–') + '</span>' +
           '<span class="hist-pill ' + (row.classificacao || 'C') + '">' + escapeHtml(row.classificacao_label || row.classificacao || '') + '</span>' +
+          '<span class="hist-pill" style="background:var(--surface-2); color:var(--text-dim);">' + escapeHtml(row.status || 'Rascunho') + '</span>' +
         '</div>';
       item.addEventListener('click', function(){
         applyFormData(row);
         currentEditId = row.id;
+        $('historyModal').classList.add('hidden');
         setSaveStatus('Ficha de "' + (row.empresa || 'lead') + '" carregada. Salvar vai atualizar este registro.');
         window.scrollTo({ top:0, behavior:'smooth' });
       });
@@ -751,7 +768,7 @@
         produto: d['f-produto'], timeline: d['f-timeline'], concorrencia: d['f-concorrencia'],
         faturamento_faixa: d['f-faturamento'], num_usuarios: d['f-num-usuarios'] || null,
         sazonalidade: d['f-sazonalidade'], stack_atual: d['f-stack'],
-        obs: d['f-obs'], obs_sucessao: d['f-obs-sucessao'],
+        obs: d['f-obs'], obs_sucessao: d['f-obs-sucessao'], status: d['f-status'] || 'Rascunho',
         proxima_contato: d['f-proxima-contato'] || null, tentativas: d['f-tentativas'] || null,
         flag_financeiro: d.flag_financeiro, flag_aderencia: d.flag_aderencia,
         total: d.total, classificacao: d.classificacao, classificacao_label: d.classificacao_label
@@ -795,6 +812,7 @@
       'Sistemas complementares: ' + d['f-stack'],
       'Score: ' + d.total + ' / ' + maxScore,
       'Classificação: ' + d.classificacao_label,
+      'Status da ficha: ' + d['f-status'],
       'Próximo contato: ' + d['f-proxima-contato'],
       'Tentativas de contato: ' + d['f-tentativas'],
       'Observações: ' + d['f-obs'],
