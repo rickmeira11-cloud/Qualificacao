@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualificação de Leads — Systêxtil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f1ea; --surface:#ffffff; --surface-2:#eceadf; --border:#d9d4c6;
+    --text:#232017; --text-dim:#6b6558; --accent:#8a5a2b; --accent-ink:#ffffff;
+    --good:#2f7d4f; --good-bg:#e4f2e9; --warn:#a8711a; --warn-bg:#f8edd9;
+    --bad:#b23a2e; --bad-bg:#f7e4e1;
+    --font-display:'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --font-body:'Inter', ui-sans-serif, system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#1b1812; --surface:#242019; --surface-2:#2c271e; --border:#3b352a;
+      --text:#f1ede3; --text-dim:#b0a996; --accent:#d79a5a; --accent-ink:#1b1812;
+      --good:#6fbf8e; --good-bg:#1f3327; --warn:#d9a24a; --warn-bg:#3a2e16;
+      --bad:#e08073; --bad-bg:#3a211d; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#1b1812; --surface:#242019; --surface-2:#2c271e; --border:#3b352a;
+    --text:#f1ede3; --text-dim:#b0a996; --accent:#d79a5a; --accent-ink:#1b1812;
+    --good:#6fbf8e; --good-bg:#1f3327; --warn:#d9a24a; --warn-bg:#3a2e16;
+    --bad:#e08073; --bad-bg:#3a211d; color-scheme: dark;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--font-body); line-height:1.45; }
+  .wrap{ max-width:1180px; margin:0 auto; padding:28px 20px 60px; }
+  header.top{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+  h1{ font-family:var(--font-display); font-weight:700; font-size:1.7rem; margin:0 0 4px; text-wrap:balance; }
+  .subtitle{color:var(--text-dim); font-size:0.92rem; margin:0;}
+  .reset-btn{ border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-family:var(--font-body); font-size:0.82rem; padding:7px 13px; border-radius:7px; cursor:pointer; }
+  .reset-btn:hover{color:var(--text); border-color:var(--accent);}
+  .grid{ display:grid; grid-template-columns: 1.4fr 1fr; gap:22px; align-items:start; }
+  @media (max-width: 860px){ .grid{ grid-template-columns: 1fr; } }
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; }
+  .card + .card{ margin-top:18px; }
+  .card h2{ font-family:var(--font-display); font-size:1.02rem; font-weight:600; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+  .card h2 .n{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--surface-2); color:var(--text-dim); font-size:0.72rem; font-variant-numeric:tabular-nums; }
+  label{ display:block; font-size:0.82rem; color:var(--text-dim); margin-bottom:5px; }
+  input[type=text], input[type=password], select, textarea{
+    width:100%; font-family:var(--font-body); font-size:0.92rem; color:var(--text);
+    background:var(--surface-2); border:1px solid var(--border); border-radius:7px; padding:9px 10px; margin-bottom:12px;
+  }
+  textarea{ resize:vertical; min-height:56px; }
+  input:focus, select:focus, textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  @media (max-width:560px){ .row2,.row3{ grid-template-columns:1fr; } }
+  .score-item{ display:grid; grid-template-columns: 1fr 150px; gap:12px; align-items:start; padding:10px 0; border-top:1px solid var(--border); }
+  .score-item:first-of-type{ border-top:none; padding-top:0; }
+  .score-item .crit-name{ font-weight:600; font-size:0.9rem; margin-bottom:2px; }
+  .score-item .crit-hint{ font-size:0.78rem; color:var(--text-dim); }
+  .score-item select{ margin-bottom:0; font-weight:600; }
+  .flags{ display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  .flags label.chk{ display:flex; align-items:center; gap:8px; font-size:0.84rem; color:var(--text); cursor:pointer; }
+  .flags input[type=checkbox]{ width:16px; height:16px; accent-color:var(--bad); }
+  .result{ border-radius:10px; padding:16px 18px; margin-top:4px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .result .score-big{ font-family:var(--font-display); font-size:2rem; font-weight:700; font-variant-numeric:tabular-nums; line-height:1; }
+  .result .score-max{ font-size:0.95rem; color:var(--text-dim); }
+  .result .pill{ font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:4px 10px; border-radius:999px; }
+  .result .action{ font-size:0.88rem; flex:1 1 220px; min-width:200px; }
+  .result.A{ background:var(--good-bg); } .result.A .score-big, .result.A .pill{ color:var(--good); } .result.A .pill{ background:color-mix(in srgb, var(--good) 18%, transparent); }
+  .result.B{ background:var(--warn-bg); } .result.B .score-big, .result.B .pill{ color:var(--warn); } .result.B .pill{ background:color-mix(in srgb, var(--warn) 18%, transparent); }
+  .result.C{ background:var(--bad-bg); } .result.C .score-big, .result.C .pill{ color:var(--bad); } .result.C .pill{ background:color-mix(in srgb, var(--bad) 18%, transparent); }
+  details.ref{ border:1px solid var(--border); border-radius:10px; background:var(--surface-2); padding:0; margin-bottom:12px; overflow:hidden; }
+  details.ref summary{ cursor:pointer; padding:11px 14px; font-weight:600; font-size:0.86rem; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+  details.ref summary::-webkit-details-marker{ display:none; }
+  details.ref summary::after{ content:'+'; color:var(--text-dim); font-size:1.1rem; }
+  details.ref[open] summary::after{ content:'–'; }
+  details.ref .ref-body{ padding:0 14px 13px; font-size:0.85rem; color:var(--text-dim); }
+  details.ref .ref-body p{ margin:6px 0; color:var(--text); }
+  details.ref .ref-body .tag{ font-size:0.74rem; color:var(--text-dim); }
+  .side-note{ font-size:0.8rem; color:var(--text-dim); margin:0 0 14px; }
+  .copy-btn{ border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:0.82rem; padding:7px 12px; border-radius:7px; cursor:pointer; margin-top:6px; }
+  .copy-btn:hover{ border-color:var(--accent); }
+  .copy-btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .theme-toggle{ border:1px solid var(--border); background:var(--surface); color:var(--text-dim); font-size:0.78rem; padding:6px 10px; border-radius:7px; cursor:pointer; }
+  .hist-item{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 0; border-top:1px solid var(--border); cursor:pointer; }
+  .hist-item:first-of-type{ border-top:none; padding-top:0; }
+  .hist-item:hover .hist-empresa{ color:var(--accent); }
+  .hist-main{ min-width:0; }
+  .hist-empresa{ font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hist-meta{ font-size:0.76rem; color:var(--text-dim); margin-top:2px; }
+  .hist-right{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .hist-score{ font-family:var(--font-display); font-weight:700; font-size:1.05rem; font-variant-numeric:tabular-nums; }
+  .hist-pill{ font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; padding:2px 7px; border-radius:999px; }
+  .hist-pill.A{ background:color-mix(in srgb, var(--good) 18%, transparent); color:var(--good); }
+  .hist-pill.B{ background:color-mix(in srgb, var(--warn) 18%, transparent); color:var(--warn); }
+  .hist-pill.C{ background:color-mix(in srgb, var(--bad) 18%, transparent); color:var(--bad); }
+
+  /* login */
+  #loginScreen{
+    min-height:100%; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .login-card{
+    width:100%; max-width:360px; background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:28px 26px;
+  }
+  .login-card h1{ font-size:1.3rem; margin-bottom:4px; }
+  .login-card .subtitle{ margin-bottom:20px; }
+  .login-error{ color:var(--bad); font-size:0.84rem; margin:-4px 0 12px; min-height:1em; }
+  .login-submit{
+    width:100%; background:var(--accent); color:var(--accent-ink); border:none; border-radius:7px;
+    padding:11px; font-weight:600; font-size:0.94rem; cursor:pointer; font-family:var(--font-body);
+  }
+  .login-submit:disabled{ opacity:.6; cursor:not-allowed; }
+  .hidden{ display:none !important; }
+
+  .topnav{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface);
+    position:sticky; top:0; z-index:20; flex-wrap:wrap; gap:10px;
+  }
+  .topnav-left{ display:flex; align-items:baseline; gap:10px; }
+  .topnav-left strong{ font-family:var(--font-display); font-size:1.05rem; }
+  .topnav-left span{ font-size:0.8rem; color:var(--text-dim); }
+  .topnav-right{ display:flex; align-items:center; gap:8px; }
+  .nav-btn{
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+    font-family:var(--font-body); font-size:0.84rem; padding:7px 13px; border-radius:7px; cursor:pointer;
+  }
+  .nav-btn:hover{ border-color:var(--accent); }
+  .user-menu{ position:relative; }
+  .dropdown{
+    position:absolute; right:0; top:calc(100% + 6px); background:var(--surface);
+    border:1px solid var(--border); border-radius:9px; min-width:170px; padding:6px;
+    box-shadow:0 8px 24px rgba(0,0,0,.12); z-index:30;
+  }
+  .dropdown-item{
+    display:block; width:100%; text-align:left; background:none; border:none; color:var(--text);
+    font-family:var(--font-body); font-size:0.86rem; padding:9px 10px; border-radius:6px; cursor:pointer;
+  }
+  .dropdown-item:hover{ background:var(--surface-2); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:flex-start;
+    justify-content:center; padding:7vh 16px; z-index:50; overflow-y:auto;
+  }
+  .modal-box{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:22px 24px; width:100%; max-width:480px;
+  }
+  .modal-box-sm{ max-width:360px; }
+  .modal-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .modal-head h2{ font-family:var(--font-display); font-size:1.05rem; margin:0; }
+  .modal-close{
+    border:none; background:none; color:var(--text-dim); font-size:1.3rem; line-height:1; cursor:pointer;
+    padding:2px 6px;
+  }
+  .modal-close:hover{ color:var(--text); }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <form class="login-card" id="loginForm">
+    <h1>Qualificação de Leads</h1>
+    <p class="subtitle">Systêxtil · acesso restrito ao time</p>
+    <label for="login-nome">Nome</label>
+    <input type="text" id="login-nome" autocomplete="username" required>
+    <label for="login-senha">Senha</label>
+    <input type="password" id="login-senha" autocomplete="current-password" required>
+    <p class="login-error" id="loginError"></p>
+    <button type="submit" class="login-submit" id="loginSubmit">Entrar</button>
+  </form>
+</div>
+
+<div id="appScreen" class="hidden">
+
+  <nav class="topnav">
+    <div class="topnav-left">
+      <strong>Qualificação de Leads</strong>
+      <span>Systêxtil</span>
+    </div>
+    <div class="topnav-right">
+      <button class="nav-btn" id="themeToggle" type="button">Tema</button>
+      <button class="nav-btn" id="histBtn" type="button">Histórico</button>
+      <div class="user-menu">
+        <button class="nav-btn" id="userMenuBtn" type="button">Usuário ▾</button>
+        <div class="dropdown hidden" id="userMenuDropdown">
+          <button class="dropdown-item" id="changePassBtn" type="button">Trocar senha</button>
+        </div>
+      </div>
+      <button class="nav-btn" id="logoutBtn" type="button">Sair</button>
+    </div>
+  </nav>
+
+  <div class="wrap">
+  <p class="subtitle" style="margin:18px 0 18px;">Preencha durante a ligação. A pontuação e a classificação são calculadas automaticamente.</p>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2><span class="n">1</span>Dados da empresa</h2>
+        <div class="row3">
+          <div><label for="f-vendedor">Vendedor</label><input type="text" id="f-vendedor" placeholder="Seu nome"></div>
+          <div><label for="f-empresa">Empresa</label><input type="text" id="f-empresa"></div>
+          <div><label for="f-contato">Contato / Cargo</label><input type="text" id="f-contato"></div>
+        </div>
+        <div class="row3">
+          <div><label for="f-cidade">Cidade / Estado</label><input type="text" id="f-cidade"></div>
+          <div><label for="f-segmento">Segmento</label><input type="text" id="f-segmento" placeholder="Confecção, têxtil, private label..."></div>
+          <div><label for="f-erp">ERP atual</label><input type="text" id="f-erp"></div>
+        </div>
+        <div class="row3">
+          <div>
+            <label for="f-produto">Produto de interesse</label>
+            <select id="f-produto">
+              <option value="">—</option>
+              <option>Systêxtil ERP</option>
+              <option>Syssa Axion</option>
+              <option>Ambos</option>
+            </select>
+          </div>
+          <div>
+            <label for="f-timeline">Prazo de decisão</label>
+            <select id="f-timeline">
+              <option value="">—</option>
+              <option>Imediato (até 30 dias)</option>
+              <option>Curto prazo (até 90 dias)</option>
+              <option>Sem prazo definido</option>
+            </select>
+          </div>
+          <div>
+            <label for="f-concorrencia">Avaliando outra solução?</label>
+            <select id="f-concorrencia">
+              <option value="">—</option>
+              <option>Não, só nós</option>
+              <option>Sim, comparando fornecedores</option>
+              <option>Não sabe / não respondeu</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="n">2</span>Pontuação do lead</h2>
+        <p class="side-note">0 = baixo · 1 = médio · 2 = alto, em cada critério.</p>
+
+        <div class="score-item">
+          <div><div class="crit-name">Perfil da empresa</div><div class="crit-hint">Aderência ao segmento/porte ideal</div></div>
+          <select class="crit" data-crit="perfil">
+            <option value="0">0 — Fora do segmento</option>
+            <option value="1">1 — Aderência parcial</option>
+            <option value="2">2 — Perfil ideal</option>
+          </select>
+        </div>
+        <div class="score-item">
+          <div><div class="crit-name">Complexidade operacional</div><div class="crit-hint">Processos, áreas e estrutura envolvidos</div></div>
+          <select class="crit" data-crit="complexidade">
+            <option value="0">0 — Simples</option>
+            <option value="1">1 — Moderada</option>
+            <option value="2">2 — Alta</option>
+          </select>
+        </div>
+        <div class="score-item">
+          <div><div class="crit-name">Dor operacional</div><div class="crit-hint">Impacto real em custo, prazo ou decisão</div></div>
+          <select class="crit" data-crit="dor">
+            <option value="0">0 — Nenhuma</option>
+            <option value="1">1 — Pontual</option>
+            <option value="2">2 — Relevante</option>
+          </select>
+        </div>
+        <div class="score-item">
+          <div><div class="crit-name">Momento do projeto</div><div class="crit-hint">Gatilho de compra + urgência</div></div>
+          <select class="crit" data-crit="momento">
+            <option value="0">0 — Curiosidade</option>
+            <option value="1">1 — Planejamento</option>
+            <option value="2">2 — Necessidade ativa</option>
+          </select>
+        </div>
+        <div class="score-item">
+          <div><div class="crit-name">Decisor</div><div class="crit-hint">Acesso a quem aprova o projeto</div></div>
+          <select class="crit" data-crit="decisor">
+            <option value="0">0 — Sem acesso</option>
+            <option value="1">1 — Acesso indireto</option>
+            <option value="2">2 — Decisor envolvido</option>
+          </select>
+        </div>
+        <div class="score-item">
+          <div><div class="crit-name">Investimento</div><div class="crit-hint">Compatibilidade com R$200k + R$6k/mês</div></div>
+          <select class="crit" data-crit="investimento">
+            <option value="0">0 — Incompatível</option>
+            <option value="1">1 — Não definido</option>
+            <option value="2">2 — Compatível</option>
+          </select>
+        </div>
+
+        <div class="flags">
+          <label class="chk"><input type="checkbox" id="flag-financeiro"> Incompatibilidade financeira grave (desqualifica mesmo com score alto)</label>
+          <label class="chk"><input type="checkbox" id="flag-aderencia"> Ausência de aderência técnica (desqualifica mesmo com score alto)</label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="n">3</span>Resultado</h2>
+        <div class="result" id="resultBox">
+          <div><span class="score-big" id="scoreBig">0</span><span class="score-max"> / 12</span></div>
+          <span class="pill" id="pill">—</span>
+          <div class="action" id="actionText">Preencha a pontuação acima para ver a classificação e a próxima ação.</div>
+        </div>
+        <label for="f-obs" style="margin-top:14px;">Observações comerciais</label>
+        <textarea id="f-obs"></textarea>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="copy-btn" id="saveBtn" type="button" style="border-color:var(--accent); color:var(--accent); font-weight:600;">Salvar no histórico</button>
+          <button class="copy-btn" id="newBtn" type="button">Nova ficha</button>
+          <button class="copy-btn" id="copyBtn" type="button">Copiar ficha</button>
+        </div>
+        <p class="side-note" id="saveStatus" style="margin-top:8px;"></p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Roteiro de apoio</h2>
+        <p class="side-note">Consulte durante a ligação — não precisa seguir na ordem exata.</p>
+
+        <details class="ref" open>
+          <summary>1. Abertura</summary>
+          <div class="ref-body">
+            <p>"Aqui é [seu nome], da Systêxtil. Antes de te apresentar algo, posso fazer 4 perguntas rápidas pra confirmar que faz sentido pra vocês?"</p>
+            <span class="tag">Alerta: recusa em responder ou pedir só preço → baixa maturidade.</span>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>2. Perfil da empresa</summary>
+          <div class="ref-body">
+            <p>Atuação na cadeia têxtil — confecção, atacado, varejo ou mais de uma?</p>
+            <p>Produção própria, terceirizada ou mista?</p>
+            <p>Quantas pessoas usam o sistema hoje, considerando todas as áreas?</p>
+            <p>Qual ERP usam atualmente?</p>
+            <span class="tag">Aprofundar se necessário: engenharia de produto estruturada ou em planilha?</span>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>3. Dor operacional</summary>
+          <div class="ref-body">
+            <p>Vocês sabem o custo real da peça ou trabalham com custo planejado?</p>
+            <p>O PCP entrega prazo com segurança ou depende de experiência pessoal?</p>
+            <p>Isso impacta mais custo, prazo ou decisão? Já tentaram resolver ou é algo antigo?</p>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>4. Momento + prazo</summary>
+          <div class="ref-body">
+            <p>O que motivou buscar solução agora — crescimento, troca de ERP ou problema específico?</p>
+            <p>Pretendem decidir em quanto tempo?</p>
+            <span class="tag">Crescimento = alto · Troca = médio · Curiosidade = descartar</span>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>5. Decisor + concorrência</summary>
+          <div class="ref-body">
+            <p>Além de você, quem participa da decisão — diretoria, sócios ou responsável de TI?</p>
+            <p>Já avaliaram outra solução ou fornecedor?</p>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>6. Ancoragem + investimento</summary>
+          <div class="ref-body">
+            <p>"Nosso trabalho é reestruturação de processo industrial — engenharia de produto, custos, PCP, estoque e backoffice integrados. Projetos desse porte partem de R$200 mil + mensalidade de R$6 mil (10 acessos). Isso está dentro do que a empresa avaliaria hoje?"</p>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>7. Fechamento por classificação</summary>
+          <div class="ref-body">
+            <p><strong>A — Qualificado:</strong> "Faz sentido agendar com as pessoas envolvidas no processo." (se não for decisor, condicionar agendamento à presença dele)</p>
+            <p><strong>B — Maturação:</strong> "Vamos manter contato e retomar quando estiver mais estruturado."</p>
+            <p><strong>C — Desqualificado:</strong> "Pelo cenário, talvez não seja o melhor momento. Posso manter contato pra futuro?"</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="historyModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>Histórico de fichas</h2>
+      <button class="modal-close" id="closeHistBtn" type="button">&times;</button>
+    </div>
+    <p class="side-note" id="historyStatus">Carregando...</p>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="passModal">
+  <div class="modal-box modal-box-sm">
+    <div class="modal-head">
+      <h2>Trocar senha</h2>
+      <button class="modal-close" id="closePassBtn" type="button">&times;</button>
+    </div>
+    <label for="newPass1">Nova senha</label>
+    <input type="password" id="newPass1" autocomplete="new-password">
+    <label for="newPass2">Confirmar nova senha</label>
+    <input type="password" id="newPass2" autocomplete="new-password">
+    <p class="login-error" id="passError"></p>
+    <button class="login-submit" id="savePassBtn" type="button">Salvar nova senha</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SUPABASE_URL = 'https://aoyfuceyzjlvjnnhuloy.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_-ehBUT2bnrPmBK_2OUtC3Q_kS25lCkw';
+  var EMAIL_DOMAIN = '@systextil.local';
+  var THEME_KEY = 'systextil-lead-theme';
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var ids = ['f-vendedor','f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia','f-obs'];
+  var crits = ['perfil','complexidade','dor','momento','decisor','investimento'];
+  var currentEditId = null;
+  var currentUserEmail = '';
+
+  function $(id){ return document.getElementById(id); }
+
+  function slugifyUser(nome){
+    return nome.trim().toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g,'')
+      .replace(/[^a-z0-9]+/g, '.')
+      .replace(/^\.+|\.+$/g, '');
+  }
+
+  // ---------- LOGIN ----------
+  $('loginForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var nome = $('login-nome').value;
+    var senha = $('login-senha').value;
+    var email = slugifyUser(nome) + EMAIL_DOMAIN;
+    var btn = $('loginSubmit');
+    btn.disabled = true; btn.textContent = 'Entrando...';
+    $('loginError').textContent = '';
+    var { data, error } = await sb.auth.signInWithPassword({ email: email, password: senha });
+    btn.disabled = false; btn.textContent = 'Entrar';
+    if (error) {
+      $('loginError').textContent = 'Nome ou senha incorretos.';
+      return;
+    }
+    currentUserEmail = nome.trim();
+    showApp();
+  });
+
+  $('logoutBtn').addEventListener('click', async function(){
+    await sb.auth.signOut();
+    location.reload();
+  });
+
+  async function showApp(){
+    $('loginScreen').classList.add('hidden');
+    $('appScreen').classList.remove('hidden');
+    $('userMenuBtn').textContent = (currentUserEmail || 'Usuário') + ' ▾';
+    computeAndRender();
+    subscribeHistory();
+  }
+
+  // ---------- MENU: Histórico / Usuário / Trocar senha ----------
+  $('histBtn').addEventListener('click', function(){
+    $('historyModal').classList.remove('hidden');
+    loadHistory();
+  });
+  $('closeHistBtn').addEventListener('click', function(){
+    $('historyModal').classList.add('hidden');
+  });
+  $('historyModal').addEventListener('click', function(e){
+    if (e.target === this) this.classList.add('hidden');
+  });
+
+  $('userMenuBtn').addEventListener('click', function(e){
+    e.stopPropagation();
+    $('userMenuDropdown').classList.toggle('hidden');
+  });
+  document.addEventListener('click', function(){
+    $('userMenuDropdown').classList.add('hidden');
+  });
+
+  $('changePassBtn').addEventListener('click', function(){
+    $('userMenuDropdown').classList.add('hidden');
+    $('newPass1').value = '';
+    $('newPass2').value = '';
+    $('passError').textContent = '';
+    $('passModal').classList.remove('hidden');
+  });
+  $('closePassBtn').addEventListener('click', function(){
+    $('passModal').classList.add('hidden');
+  });
+  $('passModal').addEventListener('click', function(e){
+    if (e.target === this) this.classList.add('hidden');
+  });
+  $('savePassBtn').addEventListener('click', async function(){
+    var p1 = $('newPass1').value, p2 = $('newPass2').value;
+    if (p1.length < 6) { $('passError').textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+    if (p1 !== p2) { $('passError').textContent = 'As senhas não conferem.'; return; }
+    var btn = $('savePassBtn');
+    btn.disabled = true; var original = btn.textContent; btn.textContent = 'Salvando...';
+    var { error } = await sb.auth.updateUser({ password: p1 });
+    btn.disabled = false; btn.textContent = original;
+    if (error) { $('passError').textContent = 'Não foi possível trocar a senha agora.'; return; }
+    $('passModal').classList.add('hidden');
+  });
+
+  async function checkSession(){
+    var { data } = await sb.auth.getSession();
+    if (data && data.session) {
+      var email = data.session.user.email || '';
+      currentUserEmail = email.split('@')[0];
+      showApp();
+    }
+  }
+
+  // ---------- SCORE ----------
+  function computeScoreOnly(){
+    var total = 0;
+    crits.forEach(function(c){
+      total += parseInt(document.querySelector('.crit[data-crit="'+c+'"]').value, 10);
+    });
+    return total;
+  }
+
+  function classify(total, financeiro, aderencia){
+    if (financeiro || aderencia) {
+      return { cls:'C', label:'Desqualificado',
+        action: financeiro
+          ? 'Regra de corte: incompatibilidade financeira grave. Agradeça, não avance, mantenha contato futuro.'
+          : 'Regra de corte: ausência de aderência técnica. Agradeça, não avance, mantenha contato futuro.' };
+    }
+    if (total >= 10) return { cls:'A', label:'Qualificado — prioridade', action:'Agendar discovery comercial com as pessoas envolvidas no processo.' };
+    if (total >= 7)  return { cls:'B', label:'Em maturação', action:'Manter contato, enviar conteúdo e retomar quando o projeto estiver mais estruturado.' };
+    return { cls:'C', label:'Desqualificado', action:'Não priorizar esforço comercial agora. Manter contato para o futuro.' };
+  }
+
+  function computeAndRender(){
+    var total = computeScoreOnly();
+    var financeiro = $('flag-financeiro').checked;
+    var aderencia = $('flag-aderencia').checked;
+    var r = classify(total, financeiro, aderencia);
+    $('scoreBig').textContent = total;
+    $('pill').textContent = r.label;
+    $('actionText').textContent = r.action;
+    var box = $('resultBox');
+    box.classList.remove('A','B','C');
+    box.classList.add(r.cls);
+    return r;
+  }
+
+  function collectFormData(){
+    var data = {};
+    ids.forEach(function(id){ data[id] = $(id).value; });
+    crits.forEach(function(c){
+      data['crit_'+c] = parseInt(document.querySelector('.crit[data-crit="'+c+'"]').value, 10);
+    });
+    data.flag_financeiro = $('flag-financeiro').checked;
+    data.flag_aderencia = $('flag-aderencia').checked;
+    data.total = computeScoreOnly();
+    var r = classify(data.total, data.flag_financeiro, data.flag_aderencia);
+    data.classificacao = r.cls;
+    data.classificacao_label = r.label;
+    return data;
+  }
+
+  function applyFormData(row){
+    $('f-vendedor').value = row.vendedor || '';
+    $('f-empresa').value = row.empresa || '';
+    $('f-contato').value = row.contato || '';
+    $('f-cidade').value = row.cidade || '';
+    $('f-segmento').value = row.segmento || '';
+    $('f-erp').value = row.erp || '';
+    $('f-produto').value = row.produto || '';
+    $('f-timeline').value = row.timeline || '';
+    $('f-concorrencia').value = row.concorrencia || '';
+    $('f-obs').value = row.obs || '';
+    crits.forEach(function(c){
+      document.querySelector('.crit[data-crit="'+c+'"]').value = (row['crit_'+c] != null) ? row['crit_'+c] : 0;
+    });
+    $('flag-financeiro').checked = !!row.flag_financeiro;
+    $('flag-aderencia').checked = !!row.flag_aderencia;
+    computeAndRender();
+  }
+
+  function clearForm(){
+    ids.forEach(function(id){ $(id).value = ''; });
+    crits.forEach(function(c){ document.querySelector('.crit[data-crit="'+c+'"]').value = '0'; });
+    $('flag-financeiro').checked = false;
+    $('flag-aderencia').checked = false;
+    currentEditId = null;
+    computeAndRender();
+  }
+
+  function setSaveStatus(text, isError){
+    var el = $('saveStatus');
+    el.textContent = text;
+    el.style.color = isError ? 'var(--bad)' : 'var(--text-dim)';
+  }
+
+  function fmtDate(ts){
+    try{ return new Date(ts).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+    catch(e){ return ''; }
+  }
+
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch];
+    });
+  }
+
+  function renderHistory(rows){
+    var container = $('historyList');
+    if(!rows || !rows.length){
+      container.innerHTML = '';
+      $('historyStatus').textContent = 'Nenhuma ficha salva ainda.';
+      return;
+    }
+    $('historyStatus').textContent = rows.length + ' ficha(s) salva(s) — clique para carregar.';
+    container.innerHTML = '';
+    rows.forEach(function(row){
+      var item = document.createElement('div');
+      item.className = 'hist-item';
+      var vendedorTxt = row.vendedor ? (' · ' + row.vendedor) : '';
+      item.innerHTML =
+        '<div class="hist-main">' +
+          '<div class="hist-empresa">' + escapeHtml(row.empresa || 'Sem nome') + '</div>' +
+          '<div class="hist-meta">' + escapeHtml(fmtDate(row.created_at)) + escapeHtml(vendedorTxt) + '</div>' +
+        '</div>' +
+        '<div class="hist-right">' +
+          '<span class="hist-score">' + (row.total != null ? row.total : '–') + '</span>' +
+          '<span class="hist-pill ' + (row.classificacao || 'C') + '">' + escapeHtml(row.classificacao_label || row.classificacao || '') + '</span>' +
+        '</div>';
+      item.addEventListener('click', function(){
+        applyFormData(row);
+        currentEditId = row.id;
+        setSaveStatus('Ficha de "' + (row.empresa || 'lead') + '" carregada. Salvar vai atualizar este registro.');
+        window.scrollTo({ top:0, behavior:'smooth' });
+      });
+      container.appendChild(item);
+    });
+  }
+
+  async function loadHistory(){
+    var { data, error } = await sb.from('leads').select('*').order('created_at', { ascending:false }).limit(100);
+    if (error) { $('historyStatus').textContent = 'Não foi possível carregar o histórico agora.'; return; }
+    renderHistory(data);
+  }
+
+  function subscribeHistory(){
+    loadHistory();
+    sb.channel('leads-changes')
+      .on('postgres_changes', { event:'*', schema:'public', table:'leads' }, function(){ loadHistory(); })
+      .subscribe();
+  }
+
+  crits.forEach(function(c){
+    document.querySelector('.crit[data-crit="'+c+'"]').addEventListener('change', computeAndRender);
+  });
+  $('flag-financeiro').addEventListener('change', computeAndRender);
+  $('flag-aderencia').addEventListener('change', computeAndRender);
+
+  $('newBtn').addEventListener('click', function(){ clearForm(); setSaveStatus('Ficha em branco pronta para um novo lead.'); });
+
+  $('saveBtn').addEventListener('click', async function(){
+    if(!$('f-empresa').value.trim()){ setSaveStatus('Informe ao menos o nome da empresa antes de salvar.', true); return; }
+    var btn = $('saveBtn');
+    btn.disabled = true;
+    var original = btn.textContent;
+    btn.textContent = 'Salvando...';
+    try{
+      var d = collectFormData();
+      var record = {
+        vendedor: d['f-vendedor'], empresa: d['f-empresa'], contato: d['f-contato'],
+        cidade: d['f-cidade'], segmento: d['f-segmento'], erp: d['f-erp'],
+        produto: d['f-produto'], timeline: d['f-timeline'], concorrencia: d['f-concorrencia'],
+        obs: d['f-obs'], flag_financeiro: d.flag_financeiro, flag_aderencia: d.flag_aderencia,
+        total: d.total, classificacao: d.classificacao, classificacao_label: d.classificacao_label
+      };
+      crits.forEach(function(c){ record['crit_'+c] = d['crit_'+c]; });
+
+      var query;
+      if (currentEditId) {
+        query = sb.from('leads').update(record).eq('id', currentEditId).select().single();
+      } else {
+        query = sb.from('leads').insert(record).select().single();
+      }
+      var { data, error } = await query;
+      if (error) throw error;
+      currentEditId = data.id;
+      setSaveStatus('Ficha de "' + d['f-empresa'] + '" salva no histórico.');
+    }catch(e){
+      setSaveStatus('Não foi possível salvar agora. Tente novamente.', true);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = original;
+    }
+  });
+
+  $('copyBtn').addEventListener('click', function(){
+    var d = collectFormData();
+    var lines = [
+      'QUALIFICAÇÃO COMERCIAL — LEAD',
+      'Vendedor: ' + d['f-vendedor'],
+      'Empresa: ' + d['f-empresa'],
+      'Contato/Cargo: ' + d['f-contato'],
+      'Cidade/Estado: ' + d['f-cidade'],
+      'Produto de interesse: ' + d['f-produto'],
+      'Segmento: ' + d['f-segmento'],
+      'ERP atual: ' + d['f-erp'],
+      'Prazo de decisão: ' + d['f-timeline'],
+      'Avaliando outra solução: ' + d['f-concorrencia'],
+      'Score: ' + d.total + ' / 12',
+      'Classificação: ' + d.classificacao_label,
+      'Observações: ' + d['f-obs']
+    ];
+    var text = lines.join('\n');
+    navigator.clipboard.writeText(text).then(function(){
+      var btn = $('copyBtn');
+      var original = btn.textContent;
+      btn.textContent = 'Copiado!';
+      setTimeout(function(){ btn.textContent = original; }, 1500);
+    }).catch(function(){});
+  });
+
+  $('themeToggle').addEventListener('click', function(){
+    var root = document.documentElement;
+    var current = root.getAttribute('data-theme');
+    if(current === 'dark'){ root.setAttribute('data-theme','light'); }
+    else if(current === 'light'){ root.removeAttribute('data-theme'); }
+    else { root.setAttribute('data-theme','dark'); }
+    try{ localStorage.setItem(THEME_KEY, root.getAttribute('data-theme') || ''); }catch(e){}
+  });
+  try{
+    var savedTheme = localStorage.getItem(THEME_KEY);
+    if(savedTheme){ document.documentElement.setAttribute('data-theme', savedTheme); }
+  }catch(e){}
+
+  computeAndRender();
+  checkSession();
+})();
+</script>
+</body>
+</html>
