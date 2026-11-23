@@ -329,7 +329,7 @@
         <details class="ref" open>
           <summary>1. Abertura</summary>
           <div class="ref-body">
-            <p>"Aqui é [seu nome], da Systêxtil. Antes de te apresentar algo, posso fazer 4 perguntas rápidas pra confirmar que faz sentido pra vocês?"</p>
+            <p>"Aqui é <span id="refNomeVendedor">[seu nome]</span>, da Systêxtil. Antes de te apresentar algo, posso fazer 4 perguntas rápidas pra confirmar que faz sentido pra vocês?"</p>
             <span class="tag">Alerta: recusa em responder ou pedir só preço → baixa maturidade.</span>
           </div>
         </details>
@@ -474,6 +474,7 @@
     $('appScreen').classList.remove('hidden');
     $('userMenuBtn').textContent = (currentUserEmail || 'Usuário') + ' ▾';
     $('f-vendedor').value = firstNameFromEmail(currentLoginEmail);
+    $('refNomeVendedor').textContent = firstNameFromEmail(currentLoginEmail) || '[seu nome]';
     computeAndRender();
     subscribeHistory();
   }
