@@ -20,22 +20,6 @@
     --font-body:'Inter', ui-sans-serif, system-ui, sans-serif;
     color-scheme: light;
   }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      --bg:#1a1620; --surface:#241f2c; --surface-2:#2c2636; --border:#3c3448;
-      --text:#f1edf5; --text-dim:#b3a9c2; --accent:#b47bd6; --accent-ink:#1a1620;
-      --accent-dark:#9a5fc0; --accent-bg:#352a44;
-      --good:#6fbf8e; --good-bg:#1f3327; --warn:#d9a24a; --warn-bg:#3a2e16;
-      --bad:#e0789a; --bad-bg:#3a2130; color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#1a1620; --surface:#241f2c; --surface-2:#2c2636; --border:#3c3448;
-    --text:#f1edf5; --text-dim:#b3a9c2; --accent:#b47bd6; --accent-ink:#1a1620;
-    --accent-dark:#9a5fc0; --accent-bg:#352a44;
-    --good:#6fbf8e; --good-bg:#1f3327; --warn:#d9a24a; --warn-bg:#3a2e16;
-    --bad:#e0789a; --bad-bg:#3a2130; color-scheme: dark;
-  }
   *{box-sizing:border-box;}
   html,body{height:100%;}
   body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--font-body); line-height:1.45; }
@@ -204,7 +188,6 @@
       <span>Systêxtil</span>
     </div>
     <div class="topnav-right">
-      <button class="nav-btn" id="themeToggle" type="button">Tema</button>
       <button class="nav-btn" id="dashBtn" type="button">Painel</button>
       <button class="nav-btn" id="histBtn" type="button">Histórico</button>
       <div class="user-menu">
@@ -585,7 +568,6 @@
   var SUPABASE_URL = 'https://aoyfuceyzjlvjnnhuloy.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_-ehBUT2bnrPmBK_2OUtC3Q_kS25lCkw';
   var EMAIL_DOMAIN = '@systextil.com.br';
-  var THEME_KEY = 'systextil-lead-theme';
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -1451,19 +1433,6 @@
       setTimeout(function(){ btn.textContent = original; }, 1500);
     }).catch(function(){});
   });
-
-  $('themeToggle').addEventListener('click', function(){
-    var root = document.documentElement;
-    var current = root.getAttribute('data-theme');
-    if(current === 'dark'){ root.setAttribute('data-theme','light'); }
-    else if(current === 'light'){ root.removeAttribute('data-theme'); }
-    else { root.setAttribute('data-theme','dark'); }
-    try{ localStorage.setItem(THEME_KEY, root.getAttribute('data-theme') || ''); }catch(e){}
-  });
-  try{
-    var savedTheme = localStorage.getItem(THEME_KEY);
-    if(savedTheme){ document.documentElement.setAttribute('data-theme', savedTheme); }
-  }catch(e){}
 
   $('scoreMax').textContent = ' / ' + maxScore;
   $('cutNote').textContent = 'A: ' + CUT_A + '+ · B: ' + CUT_B + ' a ' + (CUT_A - 1) + ' · C: abaixo de ' + CUT_B + ' · máximo ' + maxScore + '.';
