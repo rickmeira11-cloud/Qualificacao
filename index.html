@@ -980,9 +980,17 @@
   function onLeadsChanged(){ scheduleHistoryReload(); loadAgenda(); }
 
   function csvCell(v){
+    if (typeof v === 'number') return String(v);
     var t = String(v == null ? '' : v);
     if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
     return '"' + t.replace(/"/g, '""') + '"';
+  }
+
+  function fmtDateTime(ts){
+    var d = new Date(ts);
+    if (isNaN(d)) return '';
+    var p = function(n){ return String(n).padStart(2, '0'); };
+    return p(d.getDate()) + '/' + p(d.getMonth()+1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
   }
 
   async function exportCsv(){
@@ -993,12 +1001,40 @@
     try{
       var res = await buildHistoryQuery().limit(5000);
       if (res.error) throw res.error;
-      var cols = ['created_at','vendedor','empresa','contato','cidade','segmento','erp','produto','timeline','concorrencia',
-        'faturamento_faixa','num_usuarios','sazonalidade','stack_atual','total','classificacao_label','status',
-        'proxima_contato','tentativas','flag_financeiro','flag_aderencia','obs','obs_sucessao'];
-      crits.forEach(function(c){ cols.push('crit_' + c); });
-      var lines = [cols.map(csvCell).join(',')];
-      (res.data || []).forEach(function(r){ lines.push(cols.map(function(c){ return csvCell(r[c]); }).join(',')); });
+      var sim = function(v){ return v ? 'Sim' : 'Não'; };
+      var colunas = [
+        ['Criada em', function(r){ return fmtDateTime(r.created_at); }],
+        ['Vendedor', function(r){ return r.vendedor; }],
+        ['Empresa', function(r){ return r.empresa; }],
+        ['Contato / Cargo', function(r){ return r.contato; }],
+        ['Cidade / Estado', function(r){ return r.cidade; }],
+        ['Segmento', function(r){ return r.segmento; }],
+        ['ERP atual', function(r){ return r.erp; }],
+        ['Produto de interesse', function(r){ return r.produto; }],
+        ['Prazo de decisão', function(r){ return r.timeline; }],
+        ['Avaliando outra solução', function(r){ return r.concorrencia; }],
+        ['Faturamento (faixa)', function(r){ return r.faturamento_faixa; }],
+        ['Nº de usuários', function(r){ return r.num_usuarios; }],
+        ['Fase da coleção', function(r){ return r.sazonalidade; }],
+        ['Sistemas complementares', function(r){ return r.stack_atual; }],
+        ['Pontuação', function(r){ return r.total; }],
+        ['Classificação', function(r){ return r.classificacao_label; }],
+        ['Status', function(r){ return r.status; }],
+        ['Próximo contato', function(r){ return fmtDay(r.proxima_contato); }],
+        ['Tentativas', function(r){ return r.tentativas; }],
+        ['Incompatibilidade financeira', function(r){ return sim(r.flag_financeiro); }],
+        ['Sem aderência técnica', function(r){ return sim(r.flag_aderencia); }],
+        ['Observações comerciais', function(r){ return r.obs; }],
+        ['Risco de sucessão/família', function(r){ return r.obs_sucessao; }]
+      ];
+      var nomesCrit = { perfil:'Perfil', complexidade:'Complexidade', dor:'Dor', momento:'Momento', decisor:'Decisor', investimento:'Investimento', maturidade:'Maturidade', porte:'Porte' };
+      crits.forEach(function(c){
+        colunas.push(['Nota: ' + nomesCrit[c], function(r){ return r['crit_' + c]; }]);
+      });
+      var lines = [colunas.map(function(c){ return csvCell(c[0]); }).join(';')];
+      (res.data || []).forEach(function(r){
+        lines.push(colunas.map(function(c){ return csvCell(c[1](r)); }).join(';'));
+      });
       var blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
