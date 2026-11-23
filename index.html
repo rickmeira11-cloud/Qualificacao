@@ -175,6 +175,7 @@
     <input type="password" id="login-senha" autocomplete="current-password" required>
     <p class="login-error" id="loginError" role="alert"></p>
     <button type="submit" class="login-submit" id="loginSubmit">Entrar</button>
+    <button type="button" class="nav-btn" id="forgotBtn" style="width:100%; margin-top:10px;">Esqueci minha senha</button>
   </form>
 </div>
 
@@ -200,6 +201,8 @@
 
   <div class="wrap" id="fichaView">
   <p class="subtitle" style="margin:18px 0 18px;">Preencha durante a ligação. A pontuação e a classificação são calculadas automaticamente.</p>
+
+  <div class="card hidden" id="agendaCard" style="margin-bottom:18px;"><h2>Contatos pendentes</h2><p class="side-note">Fichas em aberto com próximo contato vencido ou para hoje.</p><div id="agendaList"></div></div>
 
   <div class="grid">
     <div>
@@ -469,6 +472,7 @@
         <div style="display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap;"><button class="copy-btn" id="hfClearBtn" type="button" style="margin-bottom:12px;">Limpar filtros</button><button class="copy-btn" id="hfExportBtn" type="button" style="margin-bottom:12px;">Exportar CSV</button></div>
       </div>
       <p class="side-note" id="historyStatus" aria-live="polite">Carregando...</p>
+      <p class="side-note" id="historySummary"></p>
       <div id="historyList"></div>
       <button class="copy-btn hidden" id="histMoreBtn" type="button">Carregar mais</button>
     </div>
@@ -550,7 +554,7 @@
     var email = isEmail ? nome.trim() : (slugifyUser(nome) + EMAIL_DOMAIN);
     var btn = $('loginSubmit');
     btn.disabled = true; btn.textContent = 'Entrando...';
-    $('loginError').textContent = '';
+    $('loginError').textContent = ''; $('loginError').style.color = '';
     var { error } = await sb.auth.signInWithPassword({ email: email, password: senha });
     btn.disabled = false; btn.textContent = 'Entrar';
     if (error) {
@@ -647,12 +651,26 @@
     $('userMenuDropdown').classList.add('hidden');
   });
 
-  $('changePassBtn').addEventListener('click', function(){
+  function openPassModal(){
     $('userMenuDropdown').classList.add('hidden');
     $('newPass1').value = '';
     $('newPass2').value = '';
     $('passError').textContent = '';
     $('passModal').classList.remove('hidden');
+  }
+  $('changePassBtn').addEventListener('click', openPassModal);
+  sb.auth.onAuthStateChange(function(ev){
+    if (ev === 'PASSWORD_RECOVERY') setTimeout(openPassModal, 300);
+  });
+  $('forgotBtn').addEventListener('click', async function(){
+    var v = $('login-nome').value.trim();
+    var err = $('loginError');
+    err.style.color = '';
+    if (v.indexOf('@') === -1) { err.textContent = 'Informe seu e-mail completo no campo acima.'; return; }
+    var r = await sb.auth.resetPasswordForEmail(v, { redirectTo: location.origin + location.pathname });
+    if (r.error) { console.error(r.error); err.textContent = 'Não foi possível enviar o e-mail agora.'; return; }
+    err.style.color = 'var(--good)';
+    err.textContent = 'Se o e-mail existir, enviamos um link para redefinir a senha.';
   });
   $('closePassBtn').addEventListener('click', function(){
     $('passModal').classList.add('hidden');
@@ -805,9 +823,9 @@
 
   function likePattern(s){ return '%' + s.replace(/[\\%_]/g, '\\$&') + '%'; }
 
-  function buildHistoryQuery(){
+  function buildHistoryQuery(cols){
     var f = getHistoryFilters();
-    var q = sb.from('leads').select('*').order('created_at', { ascending:false });
+    var q = sb.from('leads').select(cols || '*').order('created_at', { ascending:false });
     if (f.status) q = q.eq('status', f.status);
     if (f.vendedor) q = q.ilike('vendedor', likePattern(f.vendedor));
     if (f.empresa) q = q.ilike('empresa', likePattern(f.empresa));
@@ -851,6 +869,7 @@
     if (res.error) { console.error(res.error); window.alert('Não foi possível excluir a ficha.'); return; }
     if (currentEditId === row.id) clearForm();
     loadHistory(true);
+    loadAgenda();
   }
 
   function openLead(row){
@@ -916,7 +935,49 @@
     allHistoryRows = reset ? data : allHistoryRows.concat(data);
     histPage++;
     renderHistory(allHistoryRows, data.length === PAGE_SIZE);
+    if (reset) loadSummary();
   }
+
+  async function loadSummary(){
+    var res = await buildHistoryQuery('classificacao,status').limit(5000);
+    var el = $('historySummary');
+    if (res.error || !res.data) { el.textContent = ''; return; }
+    var c = { A:0, B:0, C:0 }, st = {};
+    res.data.forEach(function(r){
+      if (c[r.classificacao] != null) c[r.classificacao]++;
+      st[r.status || 'Rascunho'] = (st[r.status || 'Rascunho'] || 0) + 1;
+    });
+    var partes = Object.keys(st).map(function(k){ return k + ': ' + st[k]; });
+    el.textContent = 'Resumo (' + res.data.length + '): A ' + c.A + ' · B ' + c.B + ' · C ' + c.C + (partes.length ? ' — ' + partes.join(' · ') : '');
+  }
+
+  async function loadAgenda(){
+    var d = new Date();
+    var hoje = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    var res = await sb.from('leads').select('*').lte('proxima_contato', hoje)
+      .in('status', ['Rascunho','Em andamento']).order('proxima_contato', { ascending:true }).limit(20);
+    var card = $('agendaCard'), list = $('agendaList');
+    list.innerHTML = '';
+    if (res.error || !res.data || !res.data.length) { card.classList.add('hidden'); return; }
+    card.classList.remove('hidden');
+    res.data.forEach(function(row){
+      var item = document.createElement('div');
+      item.className = 'hist-item';
+      item.setAttribute('role', 'button');
+      item.tabIndex = 0;
+      item.innerHTML =
+        '<div class="hist-main"><div class="hist-empresa">' + escapeHtml(row.empresa || 'Sem nome') + '</div>' +
+        '<div class="hist-meta">' + escapeHtml('contato em ' + fmtDay(row.proxima_contato) + (row.vendedor ? ' · ' + row.vendedor : '')) + '</div></div>' +
+        '<div class="hist-right"><span class="hist-pill" style="background:var(--surface-2); color:var(--text-dim);">' + escapeHtml(row.status || 'Rascunho') + '</span></div>';
+      item.addEventListener('click', function(){ openLead(row); });
+      item.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLead(row); }
+      });
+      list.appendChild(item);
+    });
+  }
+
+  function onLeadsChanged(){ scheduleHistoryReload(); loadAgenda(); }
 
   function csvCell(v){
     var t = String(v == null ? '' : v);
@@ -955,9 +1016,10 @@
 
   function subscribeHistory(){
     loadHistory(true);
+    loadAgenda();
     if (histChannel) { sb.removeChannel(histChannel); histChannel = null; }
     histChannel = sb.channel('leads-changes')
-      .on('postgres_changes', { event:'*', schema:'public', table:'leads' }, scheduleHistoryReload)
+      .on('postgres_changes', { event:'*', schema:'public', table:'leads' }, onLeadsChanged)
       .subscribe();
   }
 
@@ -971,6 +1033,14 @@
 
   async function saveLead(){
     if(!$('f-empresa').value.trim()){ setSaveStatus('Informe ao menos o nome da empresa antes de salvar.', true); return false; }
+    if (!currentEditId) {
+      var nomeExato = $('f-empresa').value.trim().replace(/[\\%_]/g, '\\$&');
+      var dup = await sb.from('leads').select('id').ilike('empresa', nomeExato).limit(1);
+      if (dup.data && dup.data.length && !window.confirm('Já existe uma ficha para "' + $('f-empresa').value.trim() + '". Salvar mesmo assim?')) {
+        setSaveStatus('Salvamento cancelado: empresa já cadastrada.', true);
+        return false;
+      }
+    }
     var btn = $('saveBtn');
     btn.disabled = true;
     var original = btn.textContent;
@@ -1001,6 +1071,7 @@
       if (error) throw error;
       currentEditId = data.id;
       isDirty = false;
+      loadAgenda();
       setSaveStatus('Ficha de "' + d['f-empresa'] + '" salva no histórico.');
       ok = true;
     }catch(e){
