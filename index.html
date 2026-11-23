@@ -116,6 +116,16 @@
   }
   .login-submit:disabled{ opacity:.6; cursor:not-allowed; }
   .hidden{ display:none !important; }
+  .kpi{ background:var(--surface-2); border-radius:10px; padding:12px 14px; margin-bottom:12px; }
+  .kpi b{ display:block; font-family:var(--font-display); font-size:1.6rem; font-variant-numeric:tabular-nums; }
+  .kpi span{ font-size:0.78rem; color:var(--text-dim); }
+  .bar-row{ display:grid; grid-template-columns:150px 1fr 48px; gap:10px; align-items:center; margin:7px 0; font-size:0.85rem; }
+  @media (max-width:560px){ .bar-row{ grid-template-columns:96px 1fr 40px; } }
+  .bar-label{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar-track{ background:var(--surface-2); border-radius:6px; height:12px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--accent); min-width:2px; }
+  .bar-fill.A{ background:var(--good); } .bar-fill.B{ background:var(--warn); } .bar-fill.C{ background:var(--bad); } .bar-fill.I{ background:var(--text-dim); }
+  .bar-val{ text-align:right; font-variant-numeric:tabular-nums; }
   .result.I{ background:var(--surface-2); } .result.I .score-big, .result.I .pill{ color:var(--text-dim); } .result.I .pill{ background:var(--border); }
   .hist-pill.I{ background:var(--surface-2); color:var(--text-dim); }
   .hist-del{ border:1px solid var(--bad); background:none; color:var(--bad); font-size:0.7rem; padding:2px 7px; border-radius:6px; cursor:pointer; }
@@ -190,6 +200,7 @@
     </div>
     <div class="topnav-right">
       <button class="nav-btn" id="themeToggle" type="button">Tema</button>
+      <button class="nav-btn" id="dashBtn" type="button">Painel</button>
       <button class="nav-btn" id="histBtn" type="button">Histórico</button>
       <div class="user-menu">
         <button class="nav-btn" id="userMenuBtn" type="button">Usuário ▾</button>
@@ -460,6 +471,29 @@
   </div>
   </div>
 
+  <div class="wrap hidden" id="dashView">
+    <div class="card">
+      <h2>Painel</h2>
+      <div class="row3">
+        <div>
+          <label for="dash-periodo">Período</label>
+          <select id="dash-periodo">
+            <option value="30">Últimos 30 dias</option>
+            <option value="90" selected>Últimos 90 dias</option>
+            <option value="365">Últimos 12 meses</option>
+            <option value="">Tudo</option>
+          </select>
+        </div>
+        <div></div><div></div>
+      </div>
+      <p class="side-note" id="dashStatus" aria-live="polite"></p>
+      <div class="row3" id="dashKpis"></div>
+    </div>
+    <div class="card"><h2>Por classificação</h2><div id="dashClass"></div></div>
+    <div class="card"><h2>Por status</h2><div id="dashStatusBars"></div></div>
+    <div class="card hidden" id="dashVendCard"><h2>Por vendedor</h2><div id="dashVend"></div></div>
+  </div>
+
   <div class="wrap hidden" id="historyView">
     <div class="card">
       <h2>Histórico de fichas</h2>
@@ -612,16 +646,33 @@
 
   // ---------- ABA: Histórico / Usuário / Trocar senha ----------
   function showHistoryView(){
+    $('dashView').classList.add('hidden');
+    $('dashBtn').textContent = 'Painel';
     $('fichaView').classList.add('hidden');
     $('historyView').classList.remove('hidden');
     $('histBtn').textContent = 'Ficha atual';
     loadHistory(true);
   }
   function showFichaView(){
+    $('dashView').classList.add('hidden');
+    $('dashBtn').textContent = 'Painel';
     $('historyView').classList.add('hidden');
     $('fichaView').classList.remove('hidden');
     $('histBtn').textContent = 'Histórico';
   }
+  function showDashView(){
+    $('fichaView').classList.add('hidden');
+    $('historyView').classList.add('hidden');
+    $('dashView').classList.remove('hidden');
+    $('histBtn').textContent = 'Histórico';
+    $('dashBtn').textContent = 'Ficha atual';
+    $('dashVendCard').classList.toggle('hidden', !isGestor);
+    loadDash();
+  }
+  $('dashBtn').addEventListener('click', function(){
+    if ($('dashView').classList.contains('hidden')) showDashView();
+    else showFichaView();
+  });
   $('histBtn').addEventListener('click', function(){
     if ($('historyView').classList.contains('hidden')) showHistoryView();
     else showFichaView();
@@ -1135,6 +1186,69 @@
       .on('postgres_changes', { event:'*', schema:'public', table:'leads' }, onLeadsChanged)
       .subscribe();
   }
+
+  // ---------- PAINEL ----------
+  function renderBars(container, items){
+    container.innerHTML = '';
+    var max = items.reduce(function(m, i){ return Math.max(m, i.value); }, 0);
+    if (!items.length || !max) { container.textContent = 'Sem dados no período.'; return; }
+    items.forEach(function(i){
+      var row = document.createElement('div'); row.className = 'bar-row';
+      var lab = document.createElement('span'); lab.className = 'bar-label'; lab.textContent = i.label; lab.title = i.label;
+      var track = document.createElement('div'); track.className = 'bar-track';
+      var fill = document.createElement('div'); fill.className = 'bar-fill' + (i.cls ? ' ' + i.cls : '');
+      fill.style.width = (i.value / max * 100) + '%';
+      track.appendChild(fill);
+      var val = document.createElement('span'); val.className = 'bar-val'; val.textContent = i.value;
+      row.appendChild(lab); row.appendChild(track); row.appendChild(val);
+      container.appendChild(row);
+    });
+  }
+
+  function kpi(valor, rotulo){
+    var d = document.createElement('div'); d.className = 'kpi';
+    var b = document.createElement('b'); b.textContent = valor;
+    var s = document.createElement('span'); s.textContent = rotulo;
+    d.appendChild(b); d.appendChild(s);
+    return d;
+  }
+
+  var dashSeq = 0;
+  async function loadDash(){
+    var seq = ++dashSeq;
+    var dias = $('dash-periodo').value;
+    $('dashStatus').textContent = 'Carregando...';
+    var q = sb.from('leads').select('vendedor,classificacao,status,total,created_at').limit(5000);
+    if (dias) q = q.gte('created_at', new Date(Date.now() - parseInt(dias, 10) * 86400000).toISOString());
+    var res = await q;
+    if (seq !== dashSeq) return;
+    if (res.error) { console.error(res.error); $('dashStatus').textContent = 'Não foi possível carregar o painel agora.'; return; }
+    var rows = res.data || [];
+    $('dashStatus').textContent = rows.length >= 5000 ? 'Mostrando as 5000 fichas mais recentes do período.' : '';
+    var cls = { A:0, B:0, C:0, I:0 }, st = {}, vend = {}, soma = 0;
+    rows.forEach(function(r){
+      if (cls[r.classificacao] != null) cls[r.classificacao]++;
+      var k = r.status || 'Rascunho'; st[k] = (st[k] || 0) + 1;
+      var v = r.vendedor || '—'; vend[v] = (vend[v] || 0) + 1;
+      soma += r.total || 0;
+    });
+    var fechadas = (st['Ganha'] || 0) + (st['Perdida'] || 0);
+    var kp = $('dashKpis'); kp.innerHTML = '';
+    kp.appendChild(kpi(rows.length, 'fichas no período'));
+    kp.appendChild(kpi(rows.length ? Math.round(cls.A / rows.length * 100) + '%' : '—', 'qualificadas (A)'));
+    kp.appendChild(kpi(fechadas ? Math.round((st['Ganha'] || 0) / fechadas * 100) + '%' : '—', 'taxa de ganho (ganhas / ganhas + perdidas)'));
+    renderBars($('dashClass'), [
+      { label:'A — Qualificado', value:cls.A, cls:'A' }, { label:'B — Maturação', value:cls.B, cls:'B' },
+      { label:'C — Desqualificado', value:cls.C, cls:'C' }, { label:'Incompleta', value:cls.I, cls:'I' }
+    ]);
+    var ordem = ['Rascunho','Em andamento','Ganha','Perdida','Descartada'];
+    renderBars($('dashStatusBars'), ordem.filter(function(k){ return st[k]; }).map(function(k){ return { label:k, value:st[k] }; }));
+    if (isGestor) {
+      renderBars($('dashVend'), Object.keys(vend).sort(function(a, b){ return vend[b] - vend[a]; })
+        .map(function(k){ return { label:k, value:vend[k] }; }));
+    }
+  }
+  $('dash-periodo').addEventListener('change', loadDash);
 
   crits.forEach(function(c){
     document.querySelector('.crit[data-crit="'+c+'"]').addEventListener('change', computeAndRender);
