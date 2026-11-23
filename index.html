@@ -11,27 +11,30 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js" integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug" crossorigin="anonymous"></script>
 <style>
   :root{
-    --bg:#f4f1ea; --surface:#ffffff; --surface-2:#eceadf; --border:#d9d4c6;
-    --text:#232017; --text-dim:#6b6558; --accent:#8a5a2b; --accent-ink:#ffffff;
+    --bg:#f4f5f7; --surface:#ffffff; --surface-2:#f0eef5; --border:#e5e3ea;
+    --text:#1f1b24; --text-dim:#6b6670; --accent:#6e2e8e; --accent-ink:#ffffff;
+    --accent-dark:#5a2574; --accent-bg:#f1e8f7;
     --good:#2f7d4f; --good-bg:#e4f2e9; --warn:#a8711a; --warn-bg:#f8edd9;
-    --bad:#b23a2e; --bad-bg:#f7e4e1;
+    --bad:#c0315b; --bad-bg:#fceaf0;
     --font-display:'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
     --font-body:'Inter', ui-sans-serif, system-ui, sans-serif;
     color-scheme: light;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#1b1812; --surface:#242019; --surface-2:#2c271e; --border:#3b352a;
-      --text:#f1ede3; --text-dim:#b0a996; --accent:#d79a5a; --accent-ink:#1b1812;
+      --bg:#1a1620; --surface:#241f2c; --surface-2:#2c2636; --border:#3c3448;
+      --text:#f1edf5; --text-dim:#b3a9c2; --accent:#b47bd6; --accent-ink:#1a1620;
+      --accent-dark:#9a5fc0; --accent-bg:#352a44;
       --good:#6fbf8e; --good-bg:#1f3327; --warn:#d9a24a; --warn-bg:#3a2e16;
-      --bad:#e08073; --bad-bg:#3a211d; color-scheme: dark;
+      --bad:#e0789a; --bad-bg:#3a2130; color-scheme: dark;
     }
   }
   :root[data-theme="dark"]{
-    --bg:#1b1812; --surface:#242019; --surface-2:#2c271e; --border:#3b352a;
-    --text:#f1ede3; --text-dim:#b0a996; --accent:#d79a5a; --accent-ink:#1b1812;
+    --bg:#1a1620; --surface:#241f2c; --surface-2:#2c2636; --border:#3c3448;
+    --text:#f1edf5; --text-dim:#b3a9c2; --accent:#b47bd6; --accent-ink:#1a1620;
+    --accent-dark:#9a5fc0; --accent-bg:#352a44;
     --good:#6fbf8e; --good-bg:#1f3327; --warn:#d9a24a; --warn-bg:#3a2e16;
-    --bad:#e08073; --bad-bg:#3a211d; color-scheme: dark;
+    --bad:#e0789a; --bad-bg:#3a2130; color-scheme: dark;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
@@ -47,7 +50,7 @@
   .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; }
   .card + .card{ margin-top:18px; }
   .card h2{ font-family:var(--font-display); font-size:1.02rem; font-weight:600; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
-  .card h2 .n{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--surface-2); color:var(--text-dim); font-size:0.72rem; font-variant-numeric:tabular-nums; }
+  .card h2 .n{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--accent-bg); color:var(--accent-dark); font-size:0.72rem; font-weight:700; font-variant-numeric:tabular-nums; }
   label{ display:block; font-size:0.82rem; color:var(--text-dim); margin-bottom:5px; }
   input[type=text], input[type=password], input[type=number], input[type=date], select, textarea{
     width:100%; font-family:var(--font-body); font-size:0.92rem; color:var(--text);
@@ -138,14 +141,15 @@
     position:sticky; top:0; z-index:20; flex-wrap:wrap; gap:10px;
   }
   .topnav-left{ display:flex; align-items:baseline; gap:10px; }
-  .topnav-left strong{ font-family:var(--font-display); font-size:1.05rem; }
+  .topnav-left strong{ font-family:var(--font-display); font-size:1.05rem; color:var(--accent); }
   .topnav-left span{ font-size:0.8rem; color:var(--text-dim); }
   .topnav-right{ display:flex; align-items:center; gap:8px; }
   .nav-btn{
     border:1px solid var(--border); background:var(--surface-2); color:var(--text);
-    font-family:var(--font-body); font-size:0.84rem; padding:7px 13px; border-radius:7px; cursor:pointer;
+    font-family:var(--font-body); font-size:0.84rem; padding:7px 13px; border-radius:999px; cursor:pointer;
   }
   .nav-btn:hover{ border-color:var(--accent); }
+  .nav-btn.active{ background:var(--accent-bg); border-color:var(--accent-bg); color:var(--accent-dark); font-weight:600; }
   .user-menu{ position:relative; }
   .dropdown{
     position:absolute; right:0; top:calc(100% + 6px); background:var(--surface);
@@ -662,12 +666,17 @@
   }
 
   // ---------- ABA: Histórico / Usuário / Trocar senha ----------
+  function setNavActive(which){
+    $('dashBtn').classList.toggle('active', which === 'dash');
+    $('histBtn').classList.toggle('active', which === 'hist');
+  }
   function showHistoryView(){
     $('dashView').classList.add('hidden');
     $('dashBtn').textContent = 'Painel';
     $('fichaView').classList.add('hidden');
     $('historyView').classList.remove('hidden');
     $('histBtn').textContent = 'Ficha atual';
+    setNavActive('hist');
     loadHistory(true);
   }
   function showFichaView(){
@@ -676,6 +685,7 @@
     $('historyView').classList.add('hidden');
     $('fichaView').classList.remove('hidden');
     $('histBtn').textContent = 'Histórico';
+    setNavActive('ficha');
   }
   function showDashView(){
     $('fichaView').classList.add('hidden');
@@ -683,6 +693,7 @@
     $('dashView').classList.remove('hidden');
     $('histBtn').textContent = 'Histórico';
     $('dashBtn').textContent = 'Ficha atual';
+    setNavActive('dash');
     $('dashVendCard').classList.toggle('hidden', !isGestor);
     loadDash();
   }
