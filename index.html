@@ -517,6 +517,10 @@
         <div><label for="hf-empresa">Cliente / Empresa</label><input type="text" id="hf-empresa" placeholder="Nome da empresa"></div>
       </div>
       <div class="row3">
+        <div><label for="hf-uf">UF</label><select id="hf-uf"><option value="">Todas</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
+        <div></div><div></div>
+      </div>
+      <div class="row3">
         <div><label for="hf-de">Criado de</label><input type="date" id="hf-de"></div>
         <div><label for="hf-ate">Criado até</label><input type="date" id="hf-ate"></div>
         <div style="display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap;"><button class="copy-btn" id="hfClearBtn" type="button" style="margin-bottom:12px;">Limpar filtros</button><button class="copy-btn" id="hfExportBtn" type="button" style="margin-bottom:12px;">Exportar CSV</button></div>
@@ -947,6 +951,7 @@
       status: $('hf-status').value,
       vendedor: $('hf-vendedor').value.trim(),
       empresa: $('hf-empresa').value.trim(),
+      uf: $('hf-uf').value,
       de: $('hf-de').value,
       ate: $('hf-ate').value
     };
@@ -960,6 +965,7 @@
     if (f.status) q = q.eq('status', f.status);
     if (f.vendedor) q = q.ilike('vendedor', likePattern(f.vendedor));
     if (f.empresa) q = q.ilike('empresa', likePattern(f.empresa));
+    if (f.uf) q = q.eq('uf', f.uf);
     if (f.de) q = q.gte('created_at', new Date(f.de + 'T00:00:00').toISOString());
     if (f.ate) {
       var fim = new Date(f.ate + 'T00:00:00'); fim.setDate(fim.getDate() + 1);
@@ -983,12 +989,12 @@
     histDebounce = setTimeout(function(){ loadHistory(true); }, 300);
   }
 
-  ['hf-status','hf-vendedor','hf-empresa','hf-de','hf-ate'].forEach(function(id){
+  ['hf-status','hf-vendedor','hf-empresa','hf-uf','hf-de','hf-ate'].forEach(function(id){
     $(id).addEventListener('input', scheduleHistoryReload);
     $(id).addEventListener('change', scheduleHistoryReload);
   });
   $('hfClearBtn').addEventListener('click', function(){
-    $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = '';
+    $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = ''; $('hf-uf').value = '';
     $('hf-de').value = ''; $('hf-ate').value = '';
     loadHistory(true);
   });
