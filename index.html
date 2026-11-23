@@ -534,11 +534,13 @@
   </div>
 
 <div class="modal-overlay hidden" id="passModal">
-  <div class="modal-box modal-box-sm">
+  <div class="modal-box modal-box-sm" role="dialog" aria-modal="true" aria-labelledby="passTitle">
     <div class="modal-head">
-      <h2>Trocar senha</h2>
-      <button class="modal-close" id="closePassBtn" type="button">&times;</button>
+      <h2 id="passTitle">Trocar senha</h2>
+      <button class="modal-close" id="closePassBtn" type="button" aria-label="Fechar">&times;</button>
     </div>
+    <div id="oldPassWrap"><label for="oldPass">Senha atual</label>
+    <input type="password" id="oldPass" autocomplete="current-password"></div>
     <label for="newPass1">Nova senha</label>
     <input type="password" id="newPass1" autocomplete="new-password">
     <label for="newPass2">Confirmar nova senha</label>
@@ -549,9 +551,9 @@
 </div>
 
 <div class="modal-overlay hidden" id="auditModal">
-  <div class="modal-box">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="auditTitle">
     <div class="modal-head">
-      <h2>Alterações da ficha</h2>
+      <h2 id="auditTitle">Alterações da ficha</h2>
       <button class="modal-close" id="closeAuditBtn" type="button" aria-label="Fechar">&times;</button>
     </div>
     <div id="auditList"></div>
@@ -559,9 +561,9 @@
 </div>
 
 <div class="modal-overlay hidden" id="homeConfirmModal">
-  <div class="modal-box modal-box-sm">
+  <div class="modal-box modal-box-sm" role="dialog" aria-modal="true" aria-labelledby="homeTitle">
     <div class="modal-head">
-      <h2>Ficha não salva</h2>
+      <h2 id="homeTitle">Ficha não salva</h2>
     </div>
     <p class="side-note" style="margin-bottom:16px;">Você está no meio de um cadastro. Deseja salvar antes de sair, ou descartar o preenchimento atual?</p>
     <div style="display:flex; flex-direction:column; gap:8px;">
@@ -593,6 +595,8 @@
   var currentLoginEmail = '';
   var isDirty = false;
   var isGestor = false;
+  var manualLogout = false;
+  var recoveryMode = false;
   var PAGE_SIZE = 50;
 
   function $(id){ return document.getElementById(id); }
@@ -627,6 +631,7 @@
       $('loginError').textContent = 'Nome ou senha incorretos.';
       return;
     }
+    if (currentLoginEmail && currentLoginEmail !== email) clearForm();
     currentUserEmail = email.split('@')[0];
     currentLoginEmail = email;
     showApp();
@@ -634,6 +639,7 @@
 
   $('logoutBtn').addEventListener('click', async function(){
     if (!confirmDiscard()) return;
+    manualLogout = true;
     await sb.auth.signOut();
     location.reload();
   });
@@ -691,7 +697,7 @@
 
   function goHome(){
     if (isDirty) {
-      $('homeConfirmModal').classList.remove('hidden');
+      showModal($('homeConfirmModal'));
       return;
     }
     clearForm();
@@ -708,7 +714,7 @@
   }
   async function openAudit(){
     if (!currentEditId) return;
-    $('auditModal').classList.remove('hidden');
+    showModal($('auditModal'));
     var list = $('auditList');
     list.textContent = 'Carregando...';
     var res = await sb.from('lead_audit').select('*').eq('lead_id', currentEditId)
@@ -736,8 +742,8 @@
     });
   }
   $('auditBtn').addEventListener('click', openAudit);
-  $('closeAuditBtn').addEventListener('click', function(){ $('auditModal').classList.add('hidden'); });
-  $('auditModal').addEventListener('click', function(e){ if (e.target === this) this.classList.add('hidden'); });
+  $('closeAuditBtn').addEventListener('click', function(){ hideModal($('auditModal')); });
+  $('auditModal').addEventListener('click', function(e){ if (e.target === this) hideModal(this); });
 
   function confirmDiscard(){
     return !isDirty || window.confirm('Há alterações não salvas na ficha atual. Descartar?');
@@ -748,26 +754,52 @@
   });
   document.addEventListener('keydown', function(e){
     if (e.key !== 'Escape') return;
-    $('passModal').classList.add('hidden');
-    $('homeConfirmModal').classList.add('hidden');
-    $('auditModal').classList.add('hidden');
+    hideModal($('passModal'));
+    hideModal($('homeConfirmModal'));
+    hideModal($('auditModal'));
     $('userMenuDropdown').classList.add('hidden');
   });
   $('homeCancelBtn').addEventListener('click', function(){
-    $('homeConfirmModal').classList.add('hidden');
+    hideModal($('homeConfirmModal'));
   });
   $('homeDiscardBtn').addEventListener('click', function(){
-    $('homeConfirmModal').classList.add('hidden');
+    hideModal($('homeConfirmModal'));
     clearForm();
     showFichaView();
   });
   $('homeSaveBtn').addEventListener('click', async function(){
     var ok = await saveLead();
     if (ok) {
-      $('homeConfirmModal').classList.add('hidden');
+      hideModal($('homeConfirmModal'));
       clearForm();
       showFichaView();
     }
+  });
+
+  var modalReturnFocus = null;
+  function focusables(el){ return el.querySelectorAll('button:not([disabled]), input:not([disabled]), select, textarea'); }
+  function showModal(el){
+    modalReturnFocus = document.activeElement;
+    el.classList.remove('hidden');
+    var f = focusables(el);
+    if (f.length) f[0].focus();
+  }
+  function hideModal(el){
+    if (el.classList.contains('hidden')) return;
+    el.classList.add('hidden');
+    if (modalReturnFocus && modalReturnFocus.focus) { try { modalReturnFocus.focus(); } catch (e) {} }
+    modalReturnFocus = null;
+  }
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Tab') return;
+    var aberto = document.querySelector('.modal-overlay:not(.hidden)');
+    if (!aberto) return;
+    var f = focusables(aberto);
+    if (!f.length) return;
+    var primeiro = f[0], ultimo = f[f.length - 1];
+    if (!aberto.contains(document.activeElement)) { e.preventDefault(); primeiro.focus(); }
+    else if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
+    else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
   });
 
   $('userMenuBtn').addEventListener('click', function(e){
@@ -780,14 +812,28 @@
 
   function openPassModal(){
     $('userMenuDropdown').classList.add('hidden');
+    $('oldPass').value = '';
+    $('oldPassWrap').classList.toggle('hidden', recoveryMode);
     $('newPass1').value = '';
     $('newPass2').value = '';
     $('passError').textContent = '';
-    $('passModal').classList.remove('hidden');
+    showModal($('passModal'));
   }
-  $('changePassBtn').addEventListener('click', openPassModal);
+  $('changePassBtn').addEventListener('click', function(){ recoveryMode = false; openPassModal(); });
+  function handleSignedOut(){
+    if (manualLogout || $('appScreen').classList.contains('hidden')) return;
+    hideModal($('passModal')); hideModal($('homeConfirmModal')); hideModal($('auditModal'));
+    $('appScreen').classList.add('hidden');
+    $('loginScreen').classList.remove('hidden');
+    $('login-senha').value = '';
+    var err = $('loginError');
+    err.style.color = '';
+    err.textContent = 'Sessão expirada. Entre novamente; a ficha em edição foi mantida.';
+    if (histChannel) { sb.removeChannel(histChannel); histChannel = null; }
+  }
   sb.auth.onAuthStateChange(function(ev){
-    if (ev === 'PASSWORD_RECOVERY') setTimeout(openPassModal, 300);
+    if (ev === 'PASSWORD_RECOVERY') { recoveryMode = true; setTimeout(openPassModal, 300); }
+    else if (ev === 'SIGNED_OUT') handleSignedOut();
   });
   $('forgotBtn').addEventListener('click', async function(){
     var v = $('login-nome').value.trim();
@@ -800,21 +846,30 @@
     err.textContent = 'Se o e-mail existir, enviamos um link para redefinir a senha.';
   });
   $('closePassBtn').addEventListener('click', function(){
-    $('passModal').classList.add('hidden');
+    hideModal($('passModal'));
   });
   $('passModal').addEventListener('click', function(e){
-    if (e.target === this) this.classList.add('hidden');
+    if (e.target === this) hideModal(this);
   });
   $('savePassBtn').addEventListener('click', async function(){
-    var p1 = $('newPass1').value, p2 = $('newPass2').value;
-    if (p1.length < 6) { $('passError').textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+    var atual = $('oldPass').value, p1 = $('newPass1').value, p2 = $('newPass2').value;
+    if (!recoveryMode && !atual) { $('passError').textContent = 'Informe a senha atual.'; return; }
+    if (p1.length < 8) { $('passError').textContent = 'A senha precisa ter pelo menos 8 caracteres.'; return; }
     if (p1 !== p2) { $('passError').textContent = 'As senhas não conferem.'; return; }
     var btn = $('savePassBtn');
     btn.disabled = true; var original = btn.textContent; btn.textContent = 'Salvando...';
-    var { error } = await sb.auth.updateUser({ password: p1 });
-    btn.disabled = false; btn.textContent = original;
-    if (error) { $('passError').textContent = 'Não foi possível trocar a senha agora.'; return; }
-    $('passModal').classList.add('hidden');
+    try {
+      if (!recoveryMode) {
+        var chk = await sb.auth.signInWithPassword({ email: currentLoginEmail, password: atual });
+        if (chk.error) { $('passError').textContent = 'Senha atual incorreta.'; return; }
+      }
+      var res = await sb.auth.updateUser({ password: p1 });
+      if (res.error) { console.error(res.error); $('passError').textContent = 'Não foi possível trocar a senha agora.'; return; }
+      recoveryMode = false;
+      hideModal($('passModal'));
+    } finally {
+      btn.disabled = false; btn.textContent = original;
+    }
   });
 
   async function checkSession(){
@@ -1320,6 +1375,7 @@
       ok = true;
     }catch(e){
       console.error(e);
+      if (e && (e.status === 401 || /jwt/i.test(e.message || ''))) { setSaveStatus('Sessão expirada. Entre novamente.', true); handleSignedOut(); return false; }
       setSaveStatus(e && e.code === '42501' ? 'Sem permissão para salvar esta ficha.' : 'Não foi possível salvar agora. Tente novamente.', true);
       ok = false;
     }finally{
