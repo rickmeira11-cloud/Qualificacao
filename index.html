@@ -48,7 +48,7 @@
   .card h2{ font-family:var(--font-display); font-size:1.02rem; font-weight:600; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
   .card h2 .n{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--surface-2); color:var(--text-dim); font-size:0.72rem; font-variant-numeric:tabular-nums; }
   label{ display:block; font-size:0.82rem; color:var(--text-dim); margin-bottom:5px; }
-  input[type=text], input[type=password], select, textarea{
+  input[type=text], input[type=password], input[type=number], input[type=date], select, textarea{
     width:100%; font-family:var(--font-body); font-size:0.92rem; color:var(--text);
     background:var(--surface-2); border:1px solid var(--border); border-radius:7px; padding:9px 10px; margin-bottom:12px;
   }
@@ -116,6 +116,8 @@
   }
   .login-submit:disabled{ opacity:.6; cursor:not-allowed; }
   .hidden{ display:none !important; }
+  .hist-del{ border:1px solid var(--bad); background:none; color:var(--bad); font-size:0.7rem; padding:2px 7px; border-radius:6px; cursor:pointer; }
+  .hist-item:focus-visible, .topnav-left:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 
   .topnav{
     display:flex; justify-content:space-between; align-items:center;
@@ -171,7 +173,7 @@
     <input type="text" id="login-nome" autocomplete="username" required>
     <label for="login-senha">Senha</label>
     <input type="password" id="login-senha" autocomplete="current-password" required>
-    <p class="login-error" id="loginError"></p>
+    <p class="login-error" id="loginError" role="alert"></p>
     <button type="submit" class="login-submit" id="loginSubmit">Entrar</button>
   </form>
 </div>
@@ -179,7 +181,7 @@
 <div id="appScreen" class="hidden">
 
   <nav class="topnav">
-    <div class="topnav-left" id="homeBtn" style="cursor:pointer;">
+    <div class="topnav-left" id="homeBtn" role="button" tabindex="0" style="cursor:pointer;">
       <strong>Qualificação de Leads</strong>
       <span>Systêxtil</span>
     </div>
@@ -345,7 +347,7 @@
       <div class="card">
         <h2><span class="n">3</span>Resultado</h2>
         <div class="result" id="resultBox">
-          <div><span class="score-big" id="scoreBig">0</span><span class="score-max"> / 40</span></div>
+          <div><span class="score-big" id="scoreBig">0</span><span class="score-max" id="scoreMax"> / 40</span></div>
           <span class="pill" id="pill">—</span>
           <div class="action" id="actionText">Preencha a pontuação acima para ver a classificação e a próxima ação.</div>
         </div>
@@ -375,7 +377,7 @@
           <button class="copy-btn" id="newBtn" type="button">Nova ficha</button>
           <button class="copy-btn" id="copyBtn" type="button">Copiar ficha</button>
         </div>
-        <p class="side-note" id="saveStatus" style="margin-top:8px;"></p>
+        <p class="side-note" id="saveStatus" style="margin-top:8px;" aria-live="polite"></p>
       </div>
     </div>
 
@@ -464,10 +466,11 @@
       <div class="row3">
         <div><label for="hf-de">Criado de</label><input type="date" id="hf-de"></div>
         <div><label for="hf-ate">Criado até</label><input type="date" id="hf-ate"></div>
-        <div style="display:flex; align-items:flex-end;"><button class="copy-btn" id="hfClearBtn" type="button" style="margin-bottom:12px;">Limpar filtros</button></div>
+        <div style="display:flex; align-items:flex-end; gap:8px; flex-wrap:wrap;"><button class="copy-btn" id="hfClearBtn" type="button" style="margin-bottom:12px;">Limpar filtros</button><button class="copy-btn" id="hfExportBtn" type="button" style="margin-bottom:12px;">Exportar CSV</button></div>
       </div>
-      <p class="side-note" id="historyStatus">Carregando...</p>
+      <p class="side-note" id="historyStatus" aria-live="polite">Carregando...</p>
       <div id="historyList"></div>
+      <button class="copy-btn hidden" id="histMoreBtn" type="button">Carregar mais</button>
     </div>
   </div>
   </div>
@@ -482,7 +485,7 @@
     <input type="password" id="newPass1" autocomplete="new-password">
     <label for="newPass2">Confirmar nova senha</label>
     <input type="password" id="newPass2" autocomplete="new-password">
-    <p class="login-error" id="passError"></p>
+    <p class="login-error" id="passError" role="alert"></p>
     <button class="login-submit" id="savePassBtn" type="button">Salvar nova senha</button>
   </div>
 </div>
@@ -519,6 +522,8 @@
   var currentUserEmail = '';
   var currentLoginEmail = '';
   var isDirty = false;
+  var isGestor = false;
+  var PAGE_SIZE = 50;
 
   function $(id){ return document.getElementById(id); }
 
@@ -546,18 +551,19 @@
     var btn = $('loginSubmit');
     btn.disabled = true; btn.textContent = 'Entrando...';
     $('loginError').textContent = '';
-    var { data, error } = await sb.auth.signInWithPassword({ email: email, password: senha });
+    var { error } = await sb.auth.signInWithPassword({ email: email, password: senha });
     btn.disabled = false; btn.textContent = 'Entrar';
     if (error) {
       $('loginError').textContent = 'Nome ou senha incorretos.';
       return;
     }
-    currentUserEmail = isEmail ? email.split('@')[0] : nome.trim();
+    currentUserEmail = email.split('@')[0];
     currentLoginEmail = email;
     showApp();
   });
 
   $('logoutBtn').addEventListener('click', async function(){
+    if (!confirmDiscard()) return;
     await sb.auth.signOut();
     location.reload();
   });
@@ -568,6 +574,9 @@
     $('userMenuBtn').textContent = (currentUserEmail || 'Usuário') + ' ▾';
     $('f-vendedor').value = firstNameFromEmail(currentLoginEmail);
     $('refNomeVendedor').textContent = firstNameFromEmail(currentLoginEmail) || '[seu nome]';
+    var sess = await sb.auth.getSession();
+    var meta = sess.data && sess.data.session && sess.data.session.user && sess.data.session.user.app_metadata;
+    isGestor = !!meta && meta.role === 'gestor';
     computeAndRender();
     subscribeHistory();
   }
@@ -577,7 +586,7 @@
     $('fichaView').classList.add('hidden');
     $('historyView').classList.remove('hidden');
     $('histBtn').textContent = 'Ficha atual';
-    loadHistory();
+    loadHistory(true);
   }
   function showFichaView(){
     $('historyView').classList.add('hidden');
@@ -593,14 +602,26 @@
   $('fichaView').addEventListener('change', function(){ isDirty = true; });
 
   function goHome(){
-    if (isDirty && !$('fichaView').classList.contains('hidden')) {
+    if (isDirty) {
       $('homeConfirmModal').classList.remove('hidden');
       return;
     }
     clearForm();
     showFichaView();
   }
+  function confirmDiscard(){
+    return !isDirty || window.confirm('Há alterações não salvas na ficha atual. Descartar?');
+  }
   $('homeBtn').addEventListener('click', goHome);
+  $('homeBtn').addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goHome(); }
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    $('passModal').classList.add('hidden');
+    $('homeConfirmModal').classList.add('hidden');
+    $('userMenuDropdown').classList.add('hidden');
+  });
   $('homeCancelBtn').addEventListener('click', function(){
     $('homeConfirmModal').classList.add('hidden');
   });
@@ -767,93 +788,176 @@
   }
 
   var allHistoryRows = [];
+  var histPage = 0;
+  var histSeq = 0;
+  var histChannel = null;
+  var histDebounce = null;
 
   function getHistoryFilters(){
     return {
       status: $('hf-status').value,
-      vendedor: $('hf-vendedor').value.trim().toLowerCase(),
-      empresa: $('hf-empresa').value.trim().toLowerCase(),
+      vendedor: $('hf-vendedor').value.trim(),
+      empresa: $('hf-empresa').value.trim(),
       de: $('hf-de').value,
       ate: $('hf-ate').value
     };
   }
 
-  function rowDateOnly(ts){
-    var d = new Date(ts);
-    if (isNaN(d)) return '';
-    return d.toISOString().slice(0,10);
+  function likePattern(s){ return '%' + s.replace(/[\\%_]/g, '\\$&') + '%'; }
+
+  function buildHistoryQuery(){
+    var f = getHistoryFilters();
+    var q = sb.from('leads').select('*').order('created_at', { ascending:false });
+    if (f.status) q = q.eq('status', f.status);
+    if (f.vendedor) q = q.ilike('vendedor', likePattern(f.vendedor));
+    if (f.empresa) q = q.ilike('empresa', likePattern(f.empresa));
+    if (f.de) q = q.gte('created_at', new Date(f.de + 'T00:00:00').toISOString());
+    if (f.ate) {
+      var fim = new Date(f.ate + 'T00:00:00'); fim.setDate(fim.getDate() + 1);
+      q = q.lt('created_at', fim.toISOString());
+    }
+    return q;
   }
 
-  function applyHistoryFilters(){
-    var f = getHistoryFilters();
-    var filtered = allHistoryRows.filter(function(row){
-      if (f.status && row.status !== f.status) return false;
-      if (f.vendedor && (row.vendedor || '').toLowerCase().indexOf(f.vendedor) === -1) return false;
-      if (f.empresa && (row.empresa || '').toLowerCase().indexOf(f.empresa) === -1) return false;
-      var rowDate = rowDateOnly(row.created_at);
-      if (f.de && rowDate && rowDate < f.de) return false;
-      if (f.ate && rowDate && rowDate > f.ate) return false;
-      return true;
-    });
-    renderHistory(filtered);
+  function fmtDay(s){
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+    return m ? (m[3] + '/' + m[2] + '/' + m[1]) : (s || '');
+  }
+
+  function toIntOrNull(v){
+    var n = parseInt(v, 10);
+    return (isNaN(n) || n < 0) ? null : n;
+  }
+
+  function scheduleHistoryReload(){
+    clearTimeout(histDebounce);
+    histDebounce = setTimeout(function(){ loadHistory(true); }, 300);
   }
 
   ['hf-status','hf-vendedor','hf-empresa','hf-de','hf-ate'].forEach(function(id){
-    $(id).addEventListener('input', applyHistoryFilters);
-    $(id).addEventListener('change', applyHistoryFilters);
+    $(id).addEventListener('input', scheduleHistoryReload);
+    $(id).addEventListener('change', scheduleHistoryReload);
   });
   $('hfClearBtn').addEventListener('click', function(){
     $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = '';
     $('hf-de').value = ''; $('hf-ate').value = '';
-    applyHistoryFilters();
+    loadHistory(true);
   });
+  $('histMoreBtn').addEventListener('click', function(){ loadHistory(false); });
 
-  function renderHistory(rows){
+  async function deleteLead(row){
+    if (!window.confirm('Excluir a ficha de "' + (row.empresa || 'sem nome') + '"?')) return;
+    var res = await sb.from('leads').update({ deleted_at: new Date().toISOString() }).eq('id', row.id);
+    if (res.error) { console.error(res.error); window.alert('Não foi possível excluir a ficha.'); return; }
+    if (currentEditId === row.id) clearForm();
+    loadHistory(true);
+  }
+
+  function openLead(row){
+    if (!confirmDiscard()) return;
+    applyFormData(row);
+    currentEditId = row.id;
+    showFichaView();
+    setSaveStatus('Ficha de "' + (row.empresa || 'lead') + '" carregada. Salvar vai atualizar este registro.');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+
+  function renderHistory(rows, hasMore){
     var container = $('historyList');
+    $('histMoreBtn').classList.toggle('hidden', !hasMore);
+    container.innerHTML = '';
     if(!rows || !rows.length){
-      container.innerHTML = '';
-      $('historyStatus').textContent = allHistoryRows.length ? 'Nenhuma ficha corresponde aos filtros.' : 'Nenhuma ficha salva ainda.';
+      $('historyStatus').textContent = 'Nenhuma ficha encontrada.';
       return;
     }
-    $('historyStatus').textContent = rows.length + ' ficha(s) — clique para carregar.';
-    container.innerHTML = '';
+    $('historyStatus').textContent = rows.length + ' ficha(s) carregada(s)' + (hasMore ? ' — há mais.' : '.') + ' Clique para abrir.';
     rows.forEach(function(row){
       var item = document.createElement('div');
       item.className = 'hist-item';
+      item.setAttribute('role', 'button');
+      item.tabIndex = 0;
+      var cls = ['A','B','C'].indexOf(row.classificacao) !== -1 ? row.classificacao : 'C';
       var vendedorTxt = row.vendedor ? (' · ' + row.vendedor) : '';
-      var proximoTxt = row.proxima_contato ? (' · próx. contato: ' + row.proxima_contato) : '';
+      var proximoTxt = row.proxima_contato ? (' · próx. contato: ' + fmtDay(row.proxima_contato)) : '';
       item.innerHTML =
         '<div class="hist-main">' +
           '<div class="hist-empresa">' + escapeHtml(row.empresa || 'Sem nome') + '</div>' +
           '<div class="hist-meta">' + escapeHtml(fmtDate(row.created_at)) + escapeHtml(vendedorTxt) + escapeHtml(proximoTxt) + '</div>' +
         '</div>' +
         '<div class="hist-right">' +
-          '<span class="hist-score">' + (row.total != null ? row.total : '–') + '</span>' +
-          '<span class="hist-pill ' + (row.classificacao || 'C') + '">' + escapeHtml(row.classificacao_label || row.classificacao || '') + '</span>' +
+          '<span class="hist-score">' + escapeHtml(row.total != null ? row.total : '–') + '</span>' +
+          '<span class="hist-pill ' + cls + '">' + escapeHtml(row.classificacao_label || row.classificacao || '') + '</span>' +
           '<span class="hist-pill" style="background:var(--surface-2); color:var(--text-dim);">' + escapeHtml(row.status || 'Rascunho') + '</span>' +
+          (isGestor ? '<button class="hist-del" type="button">Excluir</button>' : '') +
         '</div>';
-      item.addEventListener('click', function(){
-        applyFormData(row);
-        currentEditId = row.id;
-        showFichaView();
-        setSaveStatus('Ficha de "' + (row.empresa || 'lead') + '" carregada. Salvar vai atualizar este registro.');
-        window.scrollTo({ top:0, behavior:'smooth' });
+      item.addEventListener('click', function(){ openLead(row); });
+      item.addEventListener('keydown', function(e){
+        if (e.target === item && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLead(row); }
       });
+      var del = item.querySelector('.hist-del');
+      if (del) del.addEventListener('click', function(e){ e.stopPropagation(); deleteLead(row); });
       container.appendChild(item);
     });
   }
 
-  async function loadHistory(){
-    var { data, error } = await sb.from('leads').select('*').order('created_at', { ascending:false }).limit(200);
-    if (error) { $('historyStatus').textContent = 'Não foi possível carregar o histórico agora.'; return; }
-    allHistoryRows = data || [];
-    applyHistoryFilters();
+  async function loadHistory(reset){
+    var seq = ++histSeq;
+    if (reset) { histPage = 0; }
+    var from = histPage * PAGE_SIZE;
+    $('historyStatus').textContent = 'Carregando...';
+    var res = await buildHistoryQuery().range(from, from + PAGE_SIZE - 1);
+    if (seq !== histSeq) return;
+    if (res.error) {
+      console.error(res.error);
+      $('historyStatus').textContent = 'Não foi possível carregar o histórico agora.';
+      return;
+    }
+    var data = res.data || [];
+    allHistoryRows = reset ? data : allHistoryRows.concat(data);
+    histPage++;
+    renderHistory(allHistoryRows, data.length === PAGE_SIZE);
   }
 
+  function csvCell(v){
+    var t = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t;
+    return '"' + t.replace(/"/g, '""') + '"';
+  }
+
+  async function exportCsv(){
+    var btn = $('hfExportBtn');
+    btn.disabled = true;
+    var original = btn.textContent;
+    btn.textContent = 'Exportando...';
+    try{
+      var res = await buildHistoryQuery().limit(5000);
+      if (res.error) throw res.error;
+      var cols = ['created_at','vendedor','empresa','contato','cidade','segmento','erp','produto','timeline','concorrencia',
+        'faturamento_faixa','num_usuarios','sazonalidade','stack_atual','total','classificacao_label','status',
+        'proxima_contato','tentativas','flag_financeiro','flag_aderencia','obs','obs_sucessao'];
+      crits.forEach(function(c){ cols.push('crit_' + c); });
+      var lines = [cols.map(csvCell).join(',')];
+      (res.data || []).forEach(function(r){ lines.push(cols.map(function(c){ return csvCell(r[c]); }).join(',')); });
+      var blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'leads-' + new Date().toISOString().slice(0,10) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+    }catch(e){
+      console.error(e);
+      window.alert('Não foi possível exportar agora.');
+    }finally{
+      btn.disabled = false; btn.textContent = original;
+    }
+  }
+  $('hfExportBtn').addEventListener('click', exportCsv);
+
   function subscribeHistory(){
-    loadHistory();
-    sb.channel('leads-changes')
-      .on('postgres_changes', { event:'*', schema:'public', table:'leads' }, function(){ loadHistory(); })
+    loadHistory(true);
+    if (histChannel) { sb.removeChannel(histChannel); histChannel = null; }
+    histChannel = sb.channel('leads-changes')
+      .on('postgres_changes', { event:'*', schema:'public', table:'leads' }, scheduleHistoryReload)
       .subscribe();
   }
 
@@ -863,7 +967,7 @@
   $('flag-financeiro').addEventListener('change', computeAndRender);
   $('flag-aderencia').addEventListener('change', computeAndRender);
 
-  $('newBtn').addEventListener('click', function(){ clearForm(); setSaveStatus('Ficha em branco pronta para um novo lead.'); });
+  $('newBtn').addEventListener('click', function(){ if (!confirmDiscard()) return; clearForm(); setSaveStatus('Ficha em branco pronta para um novo lead.'); });
 
   async function saveLead(){
     if(!$('f-empresa').value.trim()){ setSaveStatus('Informe ao menos o nome da empresa antes de salvar.', true); return false; }
@@ -878,10 +982,10 @@
         vendedor: d['f-vendedor'], empresa: d['f-empresa'], contato: d['f-contato'],
         cidade: d['f-cidade'], segmento: d['f-segmento'], erp: d['f-erp'],
         produto: d['f-produto'], timeline: d['f-timeline'], concorrencia: d['f-concorrencia'],
-        faturamento_faixa: d['f-faturamento'], num_usuarios: d['f-num-usuarios'] || null,
+        faturamento_faixa: d['f-faturamento'], num_usuarios: toIntOrNull(d['f-num-usuarios']),
         sazonalidade: d['f-sazonalidade'], stack_atual: d['f-stack'],
         obs: d['f-obs'], obs_sucessao: d['f-obs-sucessao'], status: d['f-status'] || 'Rascunho',
-        proxima_contato: d['f-proxima-contato'] || null, tentativas: d['f-tentativas'] || null,
+        proxima_contato: d['f-proxima-contato'] || null, tentativas: toIntOrNull(d['f-tentativas']),
         flag_financeiro: d.flag_financeiro, flag_aderencia: d.flag_aderencia,
         total: d.total, classificacao: d.classificacao, classificacao_label: d.classificacao_label
       };
@@ -900,7 +1004,8 @@
       setSaveStatus('Ficha de "' + d['f-empresa'] + '" salva no histórico.');
       ok = true;
     }catch(e){
-      setSaveStatus('Não foi possível salvar agora. Tente novamente.', true);
+      console.error(e);
+      setSaveStatus(e && e.code === '42501' ? 'Sem permissão para salvar esta ficha.' : 'Não foi possível salvar agora. Tente novamente.', true);
       ok = false;
     }finally{
       btn.disabled = false;
@@ -958,6 +1063,7 @@
     if(savedTheme){ document.documentElement.setAttribute('data-theme', savedTheme); }
   }catch(e){}
 
+  $('scoreMax').textContent = ' / ' + maxScore;
   computeAndRender();
   checkSession();
 })();
