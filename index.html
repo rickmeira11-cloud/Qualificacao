@@ -196,7 +196,7 @@
     </div>
   </nav>
 
-  <div class="wrap">
+  <div class="wrap" id="fichaView">
   <p class="subtitle" style="margin:18px 0 18px;">Preencha durante a ligação. A pontuação e a classificação são calculadas automaticamente.</p>
 
   <div class="grid">
@@ -442,18 +442,35 @@
     </div>
   </div>
   </div>
-</div>
 
-<div class="modal-overlay hidden" id="historyModal">
-  <div class="modal-box">
-    <div class="modal-head">
+  <div class="wrap hidden" id="historyView">
+    <div class="card">
       <h2>Histórico de fichas</h2>
-      <button class="modal-close" id="closeHistBtn" type="button">&times;</button>
+      <div class="row3">
+        <div>
+          <label for="hf-status">Status</label>
+          <select id="hf-status">
+            <option value="">Todos</option>
+            <option>Rascunho</option>
+            <option>Em andamento</option>
+            <option>Ganha</option>
+            <option>Perdida</option>
+            <option>Descartada</option>
+          </select>
+        </div>
+        <div><label for="hf-vendedor">Vendedor</label><input type="text" id="hf-vendedor" placeholder="Nome do vendedor"></div>
+        <div><label for="hf-empresa">Cliente / Empresa</label><input type="text" id="hf-empresa" placeholder="Nome da empresa"></div>
+      </div>
+      <div class="row3">
+        <div><label for="hf-de">Criado de</label><input type="date" id="hf-de"></div>
+        <div><label for="hf-ate">Criado até</label><input type="date" id="hf-ate"></div>
+        <div style="display:flex; align-items:flex-end;"><button class="copy-btn" id="hfClearBtn" type="button" style="margin-bottom:12px;">Limpar filtros</button></div>
+      </div>
+      <p class="side-note" id="historyStatus">Carregando...</p>
+      <div id="historyList"></div>
     </div>
-    <p class="side-note" id="historyStatus">Carregando...</p>
-    <div id="historyList"></div>
   </div>
-</div>
+  </div>
 
 <div class="modal-overlay hidden" id="passModal">
   <div class="modal-box modal-box-sm">
@@ -540,16 +557,21 @@
     subscribeHistory();
   }
 
-  // ---------- MENU: Histórico / Usuário / Trocar senha ----------
-  $('histBtn').addEventListener('click', function(){
-    $('historyModal').classList.remove('hidden');
+  // ---------- ABA: Histórico / Usuário / Trocar senha ----------
+  function showHistoryView(){
+    $('fichaView').classList.add('hidden');
+    $('historyView').classList.remove('hidden');
+    $('histBtn').textContent = 'Ficha atual';
     loadHistory();
-  });
-  $('closeHistBtn').addEventListener('click', function(){
-    $('historyModal').classList.add('hidden');
-  });
-  $('historyModal').addEventListener('click', function(e){
-    if (e.target === this) this.classList.add('hidden');
+  }
+  function showFichaView(){
+    $('historyView').classList.add('hidden');
+    $('fichaView').classList.remove('hidden');
+    $('histBtn').textContent = 'Histórico';
+  }
+  $('histBtn').addEventListener('click', function(){
+    if ($('historyView').classList.contains('hidden')) showHistoryView();
+    else showFichaView();
   });
 
   $('userMenuBtn').addEventListener('click', function(e){
@@ -698,14 +720,56 @@
     });
   }
 
+  var allHistoryRows = [];
+
+  function getHistoryFilters(){
+    return {
+      status: $('hf-status').value,
+      vendedor: $('hf-vendedor').value.trim().toLowerCase(),
+      empresa: $('hf-empresa').value.trim().toLowerCase(),
+      de: $('hf-de').value,
+      ate: $('hf-ate').value
+    };
+  }
+
+  function rowDateOnly(ts){
+    var d = new Date(ts);
+    if (isNaN(d)) return '';
+    return d.toISOString().slice(0,10);
+  }
+
+  function applyHistoryFilters(){
+    var f = getHistoryFilters();
+    var filtered = allHistoryRows.filter(function(row){
+      if (f.status && row.status !== f.status) return false;
+      if (f.vendedor && (row.vendedor || '').toLowerCase().indexOf(f.vendedor) === -1) return false;
+      if (f.empresa && (row.empresa || '').toLowerCase().indexOf(f.empresa) === -1) return false;
+      var rowDate = rowDateOnly(row.created_at);
+      if (f.de && rowDate && rowDate < f.de) return false;
+      if (f.ate && rowDate && rowDate > f.ate) return false;
+      return true;
+    });
+    renderHistory(filtered);
+  }
+
+  ['hf-status','hf-vendedor','hf-empresa','hf-de','hf-ate'].forEach(function(id){
+    $(id).addEventListener('input', applyHistoryFilters);
+    $(id).addEventListener('change', applyHistoryFilters);
+  });
+  $('hfClearBtn').addEventListener('click', function(){
+    $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = '';
+    $('hf-de').value = ''; $('hf-ate').value = '';
+    applyHistoryFilters();
+  });
+
   function renderHistory(rows){
     var container = $('historyList');
     if(!rows || !rows.length){
       container.innerHTML = '';
-      $('historyStatus').textContent = 'Nenhuma ficha salva ainda.';
+      $('historyStatus').textContent = allHistoryRows.length ? 'Nenhuma ficha corresponde aos filtros.' : 'Nenhuma ficha salva ainda.';
       return;
     }
-    $('historyStatus').textContent = rows.length + ' ficha(s) salva(s) — clique para carregar.';
+    $('historyStatus').textContent = rows.length + ' ficha(s) — clique para carregar.';
     container.innerHTML = '';
     rows.forEach(function(row){
       var item = document.createElement('div');
@@ -725,7 +789,7 @@
       item.addEventListener('click', function(){
         applyFormData(row);
         currentEditId = row.id;
-        $('historyModal').classList.add('hidden');
+        showFichaView();
         setSaveStatus('Ficha de "' + (row.empresa || 'lead') + '" carregada. Salvar vai atualizar este registro.');
         window.scrollTo({ top:0, behavior:'smooth' });
       });
@@ -734,9 +798,10 @@
   }
 
   async function loadHistory(){
-    var { data, error } = await sb.from('leads').select('*').order('created_at', { ascending:false }).limit(100);
+    var { data, error } = await sb.from('leads').select('*').order('created_at', { ascending:false }).limit(200);
     if (error) { $('historyStatus').textContent = 'Não foi possível carregar o histórico agora.'; return; }
-    renderHistory(data);
+    allHistoryRows = data || [];
+    applyHistoryFilters();
   }
 
   function subscribeHistory(){
