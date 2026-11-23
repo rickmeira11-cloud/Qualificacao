@@ -179,7 +179,7 @@
 <div id="appScreen" class="hidden">
 
   <nav class="topnav">
-    <div class="topnav-left">
+    <div class="topnav-left" id="homeBtn" style="cursor:pointer;">
       <strong>Qualificação de Leads</strong>
       <span>Systêxtil</span>
     </div>
@@ -487,6 +487,20 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="homeConfirmModal">
+  <div class="modal-box modal-box-sm">
+    <div class="modal-head">
+      <h2>Ficha não salva</h2>
+    </div>
+    <p class="side-note" style="margin-bottom:16px;">Você está no meio de um cadastro. Deseja salvar antes de sair, ou descartar o preenchimento atual?</p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="login-submit" id="homeSaveBtn" type="button">Salvar e ir para o início</button>
+      <button class="copy-btn" id="homeDiscardBtn" type="button" style="border-color:var(--bad); color:var(--bad);">Descartar e ir para o início</button>
+      <button class="copy-btn" id="homeCancelBtn" type="button">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   var SUPABASE_URL = 'https://aoyfuceyzjlvjnnhuloy.supabase.co';
@@ -504,6 +518,7 @@
   var currentEditId = null;
   var currentUserEmail = '';
   var currentLoginEmail = '';
+  var isDirty = false;
 
   function $(id){ return document.getElementById(id); }
 
@@ -572,6 +587,35 @@
   $('histBtn').addEventListener('click', function(){
     if ($('historyView').classList.contains('hidden')) showHistoryView();
     else showFichaView();
+  });
+
+  $('fichaView').addEventListener('input', function(){ isDirty = true; });
+  $('fichaView').addEventListener('change', function(){ isDirty = true; });
+
+  function goHome(){
+    if (isDirty && !$('fichaView').classList.contains('hidden')) {
+      $('homeConfirmModal').classList.remove('hidden');
+      return;
+    }
+    clearForm();
+    showFichaView();
+  }
+  $('homeBtn').addEventListener('click', goHome);
+  $('homeCancelBtn').addEventListener('click', function(){
+    $('homeConfirmModal').classList.add('hidden');
+  });
+  $('homeDiscardBtn').addEventListener('click', function(){
+    $('homeConfirmModal').classList.add('hidden');
+    clearForm();
+    showFichaView();
+  });
+  $('homeSaveBtn').addEventListener('click', async function(){
+    var ok = await saveLead();
+    if (ok) {
+      $('homeConfirmModal').classList.add('hidden');
+      clearForm();
+      showFichaView();
+    }
   });
 
   $('userMenuBtn').addEventListener('click', function(e){
@@ -689,6 +733,7 @@
     });
     $('flag-financeiro').checked = !!row.flag_financeiro;
     $('flag-aderencia').checked = !!row.flag_aderencia;
+    isDirty = false;
     computeAndRender();
   }
 
@@ -700,6 +745,7 @@
     $('flag-financeiro').checked = false;
     $('flag-aderencia').checked = false;
     currentEditId = null;
+    isDirty = false;
     computeAndRender();
   }
 
@@ -819,12 +865,13 @@
 
   $('newBtn').addEventListener('click', function(){ clearForm(); setSaveStatus('Ficha em branco pronta para um novo lead.'); });
 
-  $('saveBtn').addEventListener('click', async function(){
-    if(!$('f-empresa').value.trim()){ setSaveStatus('Informe ao menos o nome da empresa antes de salvar.', true); return; }
+  async function saveLead(){
+    if(!$('f-empresa').value.trim()){ setSaveStatus('Informe ao menos o nome da empresa antes de salvar.', true); return false; }
     var btn = $('saveBtn');
     btn.disabled = true;
     var original = btn.textContent;
     btn.textContent = 'Salvando...';
+    var ok = false;
     try{
       var d = collectFormData();
       var record = {
@@ -849,14 +896,20 @@
       var { data, error } = await query;
       if (error) throw error;
       currentEditId = data.id;
+      isDirty = false;
       setSaveStatus('Ficha de "' + d['f-empresa'] + '" salva no histórico.');
+      ok = true;
     }catch(e){
       setSaveStatus('Não foi possível salvar agora. Tente novamente.', true);
+      ok = false;
     }finally{
       btn.disabled = false;
       btn.textContent = original;
     }
-  });
+    return ok;
+  }
+
+  $('saveBtn').addEventListener('click', saveLead);
 
   $('copyBtn').addEventListener('click', function(){
     var d = collectFormData();
