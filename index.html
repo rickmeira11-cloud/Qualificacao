@@ -204,7 +204,7 @@
       <div class="card">
         <h2><span class="n">1</span>Dados da empresa</h2>
         <div class="row3">
-          <div><label for="f-vendedor">Vendedor</label><input type="text" id="f-vendedor" placeholder="Seu nome"></div>
+          <div><label for="f-vendedor">Vendedor</label><input type="text" id="f-vendedor" readonly></div>
           <div><label for="f-empresa">Empresa</label><input type="text" id="f-empresa"></div>
           <div><label for="f-contato">Contato / Cargo</label><input type="text" id="f-contato"></div>
         </div>
@@ -421,10 +421,11 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  var ids = ['f-vendedor','f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia','f-obs'];
+  var ids = ['f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia','f-obs'];
   var crits = ['perfil','complexidade','dor','momento','decisor','investimento'];
   var currentEditId = null;
   var currentUserEmail = '';
+  var currentLoginEmail = '';
 
   function $(id){ return document.getElementById(id); }
 
@@ -433,6 +434,13 @@
       .normalize('NFD').replace(/[̀-ͯ]/g,'')
       .replace(/[^a-z0-9]+/g, '.')
       .replace(/^\.+|\.+$/g, '');
+  }
+
+  function firstNameFromEmail(email){
+    var local = (email || '').split('@')[0] || '';
+    var first = local.split(/[._\-+]+/)[0] || '';
+    if (!first) return '';
+    return first.charAt(0).toUpperCase() + first.slice(1).toLowerCase();
   }
 
   // ---------- LOGIN ----------
@@ -452,6 +460,7 @@
       return;
     }
     currentUserEmail = isEmail ? email.split('@')[0] : nome.trim();
+    currentLoginEmail = email;
     showApp();
   });
 
@@ -464,6 +473,7 @@
     $('loginScreen').classList.add('hidden');
     $('appScreen').classList.remove('hidden');
     $('userMenuBtn').textContent = (currentUserEmail || 'Usuário') + ' ▾';
+    $('f-vendedor').value = firstNameFromEmail(currentLoginEmail);
     computeAndRender();
     subscribeHistory();
   }
@@ -518,6 +528,7 @@
     if (data && data.session) {
       var email = data.session.user.email || '';
       currentUserEmail = email.split('@')[0];
+      currentLoginEmail = email;
       showApp();
     }
   }
@@ -559,6 +570,7 @@
 
   function collectFormData(){
     var data = {};
+    data['f-vendedor'] = $('f-vendedor').value;
     ids.forEach(function(id){ data[id] = $(id).value; });
     crits.forEach(function(c){
       data['crit_'+c] = parseInt(document.querySelector('.crit[data-crit="'+c+'"]').value, 10);
@@ -593,6 +605,7 @@
 
   function clearForm(){
     ids.forEach(function(id){ $(id).value = ''; });
+    $('f-vendedor').value = firstNameFromEmail(currentLoginEmail);
     crits.forEach(function(c){ document.querySelector('.crit[data-crit="'+c+'"]').value = '0'; });
     $('flag-financeiro').checked = false;
     $('flag-aderencia').checked = false;
