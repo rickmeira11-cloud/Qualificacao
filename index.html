@@ -116,6 +116,8 @@
   }
   .login-submit:disabled{ opacity:.6; cursor:not-allowed; }
   .hidden{ display:none !important; }
+  .result.I{ background:var(--surface-2); } .result.I .score-big, .result.I .pill{ color:var(--text-dim); } .result.I .pill{ background:var(--border); }
+  .hist-pill.I{ background:var(--surface-2); color:var(--text-dim); }
   .hist-del{ border:1px solid var(--bad); background:none; color:var(--bad); font-size:0.7rem; padding:2px 7px; border-radius:6px; cursor:pointer; }
   .hist-item:focus-visible, .topnav-left:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
 
@@ -279,6 +281,7 @@
         <div class="score-item">
           <div><div class="crit-name">Perfil da empresa</div><div class="crit-hint">Aderência ao segmento/porte ideal</div></div>
           <select class="crit" data-crit="perfil">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Fora do segmento</option>
             <option value="1">1 — Aderência parcial</option>
             <option value="2">2 — Perfil ideal</option>
@@ -287,6 +290,7 @@
         <div class="score-item">
           <div><div class="crit-name">Complexidade operacional</div><div class="crit-hint">Processos, áreas e estrutura envolvidos</div></div>
           <select class="crit" data-crit="complexidade">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Simples</option>
             <option value="1">1 — Moderada</option>
             <option value="2">2 — Alta</option>
@@ -295,6 +299,7 @@
         <div class="score-item">
           <div><div class="crit-name">Dor operacional</div><div class="crit-hint">Impacto real em custo, prazo ou decisão</div></div>
           <select class="crit" data-crit="dor">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Nenhuma</option>
             <option value="1">1 — Pontual</option>
             <option value="2">2 — Relevante</option>
@@ -303,6 +308,7 @@
         <div class="score-item">
           <div><div class="crit-name">Momento do projeto</div><div class="crit-hint">Gatilho de compra + urgência</div></div>
           <select class="crit" data-crit="momento">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Curiosidade</option>
             <option value="1">1 — Planejamento</option>
             <option value="2">2 — Necessidade ativa</option>
@@ -311,14 +317,16 @@
         <div class="score-item">
           <div><div class="crit-name">Decisor</div><div class="crit-hint">Acesso a quem aprova o projeto</div></div>
           <select class="crit" data-crit="decisor">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Sem acesso</option>
             <option value="1">1 — Acesso indireto</option>
             <option value="2">2 — Decisor envolvido</option>
           </select>
         </div>
         <div class="score-item">
-          <div><div class="crit-name">Investimento</div><div class="crit-hint">Compatibilidade com R$200k + R$6k/mês</div></div>
+          <div><div class="crit-name">Investimento</div><div class="crit-hint" id="critInvestHint">Compatibilidade com R$200k + R$6k/mês</div></div>
           <select class="crit" data-crit="investimento">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Incompatível</option>
             <option value="1">1 — Não definido</option>
             <option value="2">2 — Compatível</option>
@@ -327,6 +335,7 @@
         <div class="score-item">
           <div><div class="crit-name">Maturidade de processo</div><div class="crit-hint">Ficha técnica estruturada ou tudo em planilha/papel?</div></div>
           <select class="crit" data-crit="maturidade">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Papel / informal</option>
             <option value="1">1 — Planilha</option>
             <option value="2">2 — Processo estruturado</option>
@@ -335,6 +344,7 @@
         <div class="score-item">
           <div><div class="crit-name">Porte da empresa</div><div class="crit-hint">Faturamento/nº de usuários compatível com o projeto</div></div>
           <select class="crit" data-crit="porte">
+            <option value="">Não avaliado</option>
             <option value="0">0 — Porte incompatível</option>
             <option value="1">1 — Porte limítrofe</option>
             <option value="2">2 — Porte compatível</option>
@@ -354,6 +364,7 @@
           <span class="pill" id="pill">—</span>
           <div class="action" id="actionText">Preencha a pontuação acima para ver a classificação e a próxima ação.</div>
         </div>
+        <p class="side-note" id="cutNote" style="margin-top:8px;"></p>
         <div class="row2" style="margin-top:14px;">
           <div>
             <label for="f-status">Status da ficha</label>
@@ -379,6 +390,7 @@
           <button class="copy-btn" id="saveBtn" type="button" style="border-color:var(--accent); color:var(--accent); font-weight:600;">Salvar no histórico</button>
           <button class="copy-btn" id="newBtn" type="button">Nova ficha</button>
           <button class="copy-btn" id="copyBtn" type="button">Copiar ficha</button>
+          <button class="copy-btn hidden" id="auditBtn" type="button">Alterações</button>
         </div>
         <p class="side-note" id="saveStatus" style="margin-top:8px;" aria-live="polite"></p>
       </div>
@@ -432,7 +444,7 @@
         <details class="ref">
           <summary>6. Ancoragem + investimento</summary>
           <div class="ref-body">
-            <p>"Nosso trabalho é reestruturação de processo industrial — engenharia de produto, custos, PCP, estoque e backoffice integrados. Projetos desse porte partem de R$200 mil + mensalidade de R$6 mil (10 acessos). Isso está dentro do que a empresa avaliaria hoje?"</p>
+            <p>"Nosso trabalho é reestruturação de processo industrial — engenharia de produto, custos, PCP, estoque e backoffice integrados. Projetos desse porte partem de <span id="refPreco">R$200 mil + mensalidade de R$6 mil (10 acessos)</span>. Isso está dentro do que a empresa avaliaria hoje?"</p>
           </div>
         </details>
         <details class="ref">
@@ -494,6 +506,16 @@
   </div>
 </div>
 
+<div class="modal-overlay hidden" id="auditModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>Alterações da ficha</h2>
+      <button class="modal-close" id="closeAuditBtn" type="button" aria-label="Fechar">&times;</button>
+    </div>
+    <div id="auditList"></div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="homeConfirmModal">
   <div class="modal-box modal-box-sm">
     <div class="modal-head">
@@ -520,6 +542,8 @@
   var ids = ['f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
     'f-faturamento','f-num-usuarios','f-sazonalidade','f-stack','f-obs','f-obs-sucessao','f-status','f-proxima-contato','f-tentativas'];
   var crits = ['perfil','complexidade','dor','momento','decisor','investimento','maturidade','porte'];
+  var CUT_A = 33, CUT_B = 23;
+  var PRECO = { implantacao:'R$200 mil', mensal:'R$6 mil', acessos:10 };
   var critWeights = { perfil:2, complexidade:2, dor:3, momento:2, decisor:3, investimento:3, maturidade:2, porte:3 };
   var maxScore = crits.reduce(function(s,c){ return s + 2*critWeights[c]; }, 0);
   var currentEditId = null;
@@ -581,6 +605,7 @@
     var sess = await sb.auth.getSession();
     var meta = sess.data && sess.data.session && sess.data.session.user && sess.data.session.user.app_metadata;
     isGestor = !!meta && meta.role === 'gestor';
+    refreshAuditBtn();
     computeAndRender();
     subscribeHistory();
   }
@@ -613,6 +638,48 @@
     clearForm();
     showFichaView();
   }
+  function refreshAuditBtn(){
+    $('auditBtn').classList.toggle('hidden', !(isGestor && currentEditId));
+  }
+
+  var AUDIT_IGNORE = { updated_at:1, updated_by:1 };
+  function auditVal(v){
+    var t = v == null ? '—' : String(v);
+    return t.length > 80 ? t.slice(0, 77) + '...' : t;
+  }
+  async function openAudit(){
+    if (!currentEditId) return;
+    $('auditModal').classList.remove('hidden');
+    var list = $('auditList');
+    list.textContent = 'Carregando...';
+    var res = await sb.from('lead_audit').select('*').eq('lead_id', currentEditId)
+      .order('changed_at', { ascending:false }).limit(100);
+    if (res.error) { console.error(res.error); list.textContent = 'Não foi possível carregar as alterações.'; return; }
+    if (!res.data.length) { list.textContent = 'Sem alterações registradas.'; return; }
+    list.innerHTML = '';
+    res.data.forEach(function(a){
+      var box = document.createElement('div');
+      box.style.cssText = 'padding:10px 0; border-top:1px solid var(--border);';
+      var head = document.createElement('div');
+      head.style.fontWeight = '600';
+      head.textContent = fmtDate(a.changed_at) + ' · ' + (a.changed_by_email || 'desconhecido') + ' · ' + a.action;
+      box.appendChild(head);
+      if (a.action === 'UPDATE' && a.old_data && a.new_data) {
+        Object.keys(a.new_data).forEach(function(k){
+          if (AUDIT_IGNORE[k] || JSON.stringify(a.old_data[k]) === JSON.stringify(a.new_data[k])) return;
+          var line = document.createElement('div');
+          line.className = 'hist-meta';
+          line.textContent = k + ': ' + auditVal(a.old_data[k]) + ' → ' + auditVal(a.new_data[k]);
+          box.appendChild(line);
+        });
+      }
+      list.appendChild(box);
+    });
+  }
+  $('auditBtn').addEventListener('click', openAudit);
+  $('closeAuditBtn').addEventListener('click', function(){ $('auditModal').classList.add('hidden'); });
+  $('auditModal').addEventListener('click', function(e){ if (e.target === this) this.classList.add('hidden'); });
+
   function confirmDiscard(){
     return !isDirty || window.confirm('Há alterações não salvas na ficha atual. Descartar?');
   }
@@ -624,6 +691,7 @@
     if (e.key !== 'Escape') return;
     $('passModal').classList.add('hidden');
     $('homeConfirmModal').classList.add('hidden');
+    $('auditModal').classList.add('hidden');
     $('userMenuDropdown').classList.add('hidden');
   });
   $('homeCancelBtn').addEventListener('click', function(){
@@ -701,24 +769,31 @@
   }
 
   // ---------- SCORE ----------
+  function critValue(c){
+    var raw = document.querySelector('.crit[data-crit="'+c+'"]').value;
+    return raw === '' ? null : parseInt(raw, 10);
+  }
+
   function computeScoreOnly(){
     var total = 0;
-    crits.forEach(function(c){
-      var v = parseInt(document.querySelector('.crit[data-crit="'+c+'"]').value, 10);
-      total += v * critWeights[c];
-    });
+    crits.forEach(function(c){ total += (critValue(c) || 0) * critWeights[c]; });
     return total;
   }
 
-  function classify(total, financeiro, aderencia){
+  function countUnrated(){
+    return crits.filter(function(c){ return critValue(c) === null; }).length;
+  }
+
+  function classify(total, financeiro, aderencia, naoAvaliados){
     if (financeiro || aderencia) {
       return { cls:'C', label:'Desqualificado',
         action: financeiro
           ? 'Regra de corte: incompatibilidade financeira grave. Agradeça, não avance, mantenha contato futuro.'
           : 'Regra de corte: ausência de aderência técnica. Agradeça, não avance, mantenha contato futuro.' };
     }
-    if (total >= 33) return { cls:'A', label:'Qualificado — prioridade', action:'Agendar discovery comercial com as pessoas envolvidas no processo.' };
-    if (total >= 23) return { cls:'B', label:'Em maturação', action:'Manter contato, enviar conteúdo e retomar quando o projeto estiver mais estruturado.' };
+    if (naoAvaliados > 0) return { cls:'I', label:'Incompleta', action: naoAvaliados + ' critério(s) sem avaliação. Complete a pontuação para classificar o lead.' };
+    if (total >= CUT_A) return { cls:'A', label:'Qualificado — prioridade', action:'Agendar discovery comercial com as pessoas envolvidas no processo.' };
+    if (total >= CUT_B) return { cls:'B', label:'Em maturação', action:'Manter contato, enviar conteúdo e retomar quando o projeto estiver mais estruturado.' };
     return { cls:'C', label:'Desqualificado', action:'Não priorizar esforço comercial agora. Manter contato para o futuro.' };
   }
 
@@ -726,12 +801,12 @@
     var total = computeScoreOnly();
     var financeiro = $('flag-financeiro').checked;
     var aderencia = $('flag-aderencia').checked;
-    var r = classify(total, financeiro, aderencia);
+    var r = classify(total, financeiro, aderencia, countUnrated());
     $('scoreBig').textContent = total;
     $('pill').textContent = r.label;
     $('actionText').textContent = r.action;
     var box = $('resultBox');
-    box.classList.remove('A','B','C');
+    box.classList.remove('A','B','C','I');
     box.classList.add(r.cls);
     return r;
   }
@@ -741,12 +816,12 @@
     data['f-vendedor'] = $('f-vendedor').value;
     ids.forEach(function(id){ data[id] = $(id).value; });
     crits.forEach(function(c){
-      data['crit_'+c] = parseInt(document.querySelector('.crit[data-crit="'+c+'"]').value, 10);
+      data['crit_'+c] = critValue(c);
     });
     data.flag_financeiro = $('flag-financeiro').checked;
     data.flag_aderencia = $('flag-aderencia').checked;
     data.total = computeScoreOnly();
-    var r = classify(data.total, data.flag_financeiro, data.flag_aderencia);
+    var r = classify(data.total, data.flag_financeiro, data.flag_aderencia, countUnrated());
     data.classificacao = r.cls;
     data.classificacao_label = r.label;
     return data;
@@ -768,7 +843,7 @@
       $(id).value = (col && row[col] != null) ? row[col] : '';
     });
     crits.forEach(function(c){
-      document.querySelector('.crit[data-crit="'+c+'"]').value = (row['crit_'+c] != null) ? row['crit_'+c] : 0;
+      document.querySelector('.crit[data-crit="'+c+'"]').value = (row['crit_'+c] != null) ? row['crit_'+c] : '';
     });
     $('flag-financeiro').checked = !!row.flag_financeiro;
     $('flag-aderencia').checked = !!row.flag_aderencia;
@@ -780,11 +855,12 @@
     ids.forEach(function(id){ $(id).value = ''; });
     $('f-vendedor').value = firstNameFromEmail(currentLoginEmail);
     $('f-status').value = 'Rascunho';
-    crits.forEach(function(c){ document.querySelector('.crit[data-crit="'+c+'"]').value = '0'; });
+    crits.forEach(function(c){ document.querySelector('.crit[data-crit="'+c+'"]').value = ''; });
     $('flag-financeiro').checked = false;
     $('flag-aderencia').checked = false;
     currentEditId = null;
     isDirty = false;
+    refreshAuditBtn();
     computeAndRender();
   }
 
@@ -876,6 +952,7 @@
     if (!confirmDiscard()) return;
     applyFormData(row);
     currentEditId = row.id;
+    refreshAuditBtn();
     showFichaView();
     setSaveStatus('Ficha de "' + (row.empresa || 'lead') + '" carregada. Salvar vai atualizar este registro.');
     window.scrollTo({ top:0, behavior:'smooth' });
@@ -895,7 +972,7 @@
       item.className = 'hist-item';
       item.setAttribute('role', 'button');
       item.tabIndex = 0;
-      var cls = ['A','B','C'].indexOf(row.classificacao) !== -1 ? row.classificacao : 'C';
+      var cls = ['A','B','C','I'].indexOf(row.classificacao) !== -1 ? row.classificacao : 'C';
       var vendedorTxt = row.vendedor ? (' · ' + row.vendedor) : '';
       var proximoTxt = row.proxima_contato ? (' · próx. contato: ' + fmtDay(row.proxima_contato)) : '';
       item.innerHTML =
@@ -1106,6 +1183,7 @@
       var { data, error } = await query;
       if (error) throw error;
       currentEditId = data.id;
+      refreshAuditBtn();
       isDirty = false;
       loadAgenda();
       setSaveStatus('Ficha de "' + d['f-empresa'] + '" salva no histórico.');
@@ -1171,6 +1249,9 @@
   }catch(e){}
 
   $('scoreMax').textContent = ' / ' + maxScore;
+  $('cutNote').textContent = 'A: ' + CUT_A + '+ · B: ' + CUT_B + ' a ' + (CUT_A - 1) + ' · C: abaixo de ' + CUT_B + ' · máximo ' + maxScore + '.';
+  $('critInvestHint').textContent = 'Compatibilidade com ' + PRECO.implantacao + ' + ' + PRECO.mensal + '/mês';
+  $('refPreco').textContent = PRECO.implantacao + ' + mensalidade de ' + PRECO.mensal + ' (' + PRECO.acessos + ' acessos)';
   computeAndRender();
   checkSession();
 })();
