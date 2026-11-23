@@ -124,9 +124,13 @@
     padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface);
     position:sticky; top:0; z-index:20; flex-wrap:wrap; gap:10px;
   }
-  .topnav-left{ display:flex; align-items:baseline; gap:10px; }
-  .topnav-left strong{ font-family:var(--font-display); font-size:1.05rem; color:var(--accent); }
+  .topnav-left{ display:flex; align-items:center; gap:14px; }
+  .brand-logo{ height:36px; width:auto; display:block; padding-right:14px; border-right:1px solid var(--border); }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.2; }
+  .topnav-left strong{ font-family:var(--font-display); font-size:1.05rem; color:var(--text); }
   .topnav-left span{ font-size:0.8rem; color:var(--text-dim); }
+  @media (max-width:560px){ .brand-logo{ height:28px; padding-right:10px; } .topnav-left{ gap:10px; } }
+  .login-logo{ display:block; height:44px; width:auto; margin:0 auto 20px; }
   .topnav-right{ display:flex; align-items:center; gap:8px; }
   .nav-btn{
     border:1px solid var(--border); background:var(--surface-2); color:var(--text);
@@ -168,6 +172,7 @@
 
 <div id="loginScreen">
   <form class="login-card" id="loginForm">
+    <img class="login-logo" src="logo-systextil.png" alt="Systêxtil">
     <h1>Qualificação de Leads</h1>
     <p class="subtitle">Systêxtil · acesso restrito ao time</p>
     <label for="login-nome">Nome ou e-mail</label>
@@ -183,9 +188,12 @@
 <div id="appScreen" class="hidden">
 
   <nav class="topnav">
-    <div class="topnav-left" id="homeBtn" role="button" tabindex="0" style="cursor:pointer;">
-      <strong>Qualificação de Leads</strong>
-      <span>Systêxtil</span>
+    <div class="topnav-left" id="homeBtn" role="button" tabindex="0" aria-label="Ir para o início" style="cursor:pointer;">
+      <img class="brand-logo" src="logo-systextil.png" alt="Systêxtil">
+      <div class="brand-text">
+        <strong>Qualificação de Leads</strong>
+        <span>Systêxtil ERP Cloud</span>
+      </div>
     </div>
     <div class="topnav-right">
       <button class="nav-btn" id="dashBtn" type="button">Painel</button>
