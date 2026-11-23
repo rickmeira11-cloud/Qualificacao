@@ -224,10 +224,14 @@
         <div class="row3">
           <div><label for="f-vendedor">Vendedor</label><input type="text" id="f-vendedor" readonly></div>
           <div><label for="f-empresa">Empresa</label><input type="text" id="f-empresa"></div>
-          <div><label for="f-contato">Contato / Cargo</label><input type="text" id="f-contato"></div>
+          <div><label for="f-contato">Contato</label><input type="text" id="f-contato"></div>
         </div>
         <div class="row3">
-          <div><label for="f-cidade">Cidade / Estado</label><input type="text" id="f-cidade"></div>
+          <div><label for="f-cargo">Cargo</label><input type="text" id="f-cargo"></div>
+          <div><label for="f-cidade">Cidade</label><input type="text" id="f-cidade"></div>
+          <div><label for="f-uf">UF</label><select id="f-uf"><option value="">—</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
+        </div>
+        <div class="row2">
           <div><label for="f-segmento">Segmento</label><input type="text" id="f-segmento" placeholder="Confecção, têxtil, private label..."></div>
           <div><label for="f-erp">ERP atual</label><input type="text" id="f-erp"></div>
         </div>
@@ -573,7 +577,7 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  var ids = ['f-empresa','f-contato','f-cidade','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
+  var ids = ['f-empresa','f-contato','f-cargo','f-cidade','f-uf','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
     'f-faturamento','f-num-usuarios','f-sazonalidade','f-stack','f-obs','f-obs-sucessao','f-status','f-proxima-contato','f-tentativas'];
   var crits = ['perfil','complexidade','dor','momento','decisor','investimento','maturidade','porte'];
   var CUT_A = 33, CUT_B = 23;
@@ -879,7 +883,7 @@
   }
 
   var fieldToColumn = {
-    'f-empresa':'empresa', 'f-contato':'contato', 'f-cidade':'cidade', 'f-segmento':'segmento',
+    'f-empresa':'empresa', 'f-contato':'contato', 'f-cargo':'cargo', 'f-cidade':'cidade', 'f-uf':'uf', 'f-segmento':'segmento',
     'f-erp':'erp', 'f-produto':'produto', 'f-timeline':'timeline', 'f-concorrencia':'concorrencia',
     'f-faturamento':'faturamento_faixa', 'f-num-usuarios':'num_usuarios', 'f-sazonalidade':'sazonalidade',
     'f-stack':'stack_atual', 'f-obs':'obs', 'f-obs-sucessao':'obs_sucessao', 'f-status':'status',
@@ -1138,8 +1142,10 @@
         ['Criada em', function(r){ return fmtDateTime(r.created_at); }],
         ['Vendedor', function(r){ return r.vendedor; }],
         ['Empresa', function(r){ return r.empresa; }],
-        ['Contato / Cargo', function(r){ return r.contato; }],
-        ['Cidade / Estado', function(r){ return r.cidade; }],
+        ['Contato', function(r){ return r.contato; }],
+        ['Cargo', function(r){ return r.cargo; }],
+        ['Cidade', function(r){ return r.cidade; }],
+        ['UF', function(r){ return r.uf; }],
         ['Segmento', function(r){ return r.segmento; }],
         ['ERP atual', function(r){ return r.erp; }],
         ['Produto de interesse', function(r){ return r.produto; }],
@@ -1280,8 +1286,8 @@
     try{
       var d = collectFormData();
       var record = {
-        vendedor: d['f-vendedor'], empresa: d['f-empresa'], contato: d['f-contato'],
-        cidade: d['f-cidade'], segmento: d['f-segmento'], erp: d['f-erp'],
+        vendedor: d['f-vendedor'], empresa: d['f-empresa'], contato: d['f-contato'], cargo: d['f-cargo'],
+        cidade: d['f-cidade'], uf: d['f-uf'] || null, segmento: d['f-segmento'], erp: d['f-erp'],
         produto: d['f-produto'], timeline: d['f-timeline'], concorrencia: d['f-concorrencia'],
         faturamento_faixa: d['f-faturamento'], num_usuarios: toIntOrNull(d['f-num-usuarios']),
         sazonalidade: d['f-sazonalidade'], stack_atual: d['f-stack'],
@@ -1325,8 +1331,9 @@
       'QUALIFICAÇÃO COMERCIAL — LEAD',
       'Vendedor: ' + d['f-vendedor'],
       'Empresa: ' + d['f-empresa'],
-      'Contato/Cargo: ' + d['f-contato'],
-      'Cidade/Estado: ' + d['f-cidade'],
+      'Contato: ' + d['f-contato'],
+      'Cargo: ' + d['f-cargo'],
+      'Cidade/UF: ' + d['f-cidade'] + (d['f-uf'] ? ' / ' + d['f-uf'] : ''),
       'Produto de interesse: ' + d['f-produto'],
       'Segmento: ' + d['f-segmento'],
       'ERP atual: ' + d['f-erp'],
