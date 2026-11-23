@@ -167,7 +167,7 @@
   <form class="login-card" id="loginForm">
     <h1>Qualificação de Leads</h1>
     <p class="subtitle">Systêxtil · acesso restrito ao time</p>
-    <label for="login-nome">Nome</label>
+    <label for="login-nome">Nome ou e-mail</label>
     <input type="text" id="login-nome" autocomplete="username" required>
     <label for="login-senha">Senha</label>
     <input type="password" id="login-senha" autocomplete="current-password" required>
@@ -440,7 +440,8 @@
     e.preventDefault();
     var nome = $('login-nome').value;
     var senha = $('login-senha').value;
-    var email = slugifyUser(nome) + EMAIL_DOMAIN;
+    var isEmail = nome.indexOf('@') !== -1;
+    var email = isEmail ? nome.trim() : (slugifyUser(nome) + EMAIL_DOMAIN);
     var btn = $('loginSubmit');
     btn.disabled = true; btn.textContent = 'Entrando...';
     $('loginError').textContent = '';
@@ -450,7 +451,7 @@
       $('loginError').textContent = 'Nome ou senha incorretos.';
       return;
     }
-    currentUserEmail = nome.trim();
+    currentUserEmail = isEmail ? email.split('@')[0] : nome.trim();
     showApp();
   });
 
