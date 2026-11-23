@@ -992,8 +992,12 @@
 
   async function deleteLead(row){
     if (!window.confirm('Excluir a ficha de "' + (row.empresa || 'sem nome') + '"?')) return;
-    var res = await sb.from('leads').update({ deleted_at: new Date().toISOString() }).eq('id', row.id);
-    if (res.error) { console.error(res.error); window.alert('Não foi possível excluir a ficha.'); return; }
+    var res = await sb.rpc('soft_delete_lead', { p_id: row.id });
+    if (res.error) {
+      console.error(res.error);
+      window.alert('Não foi possível excluir a ficha.' + (res.error.code ? ' (código ' + res.error.code + ')' : ''));
+      return;
+    }
     if (currentEditId === row.id) clearForm();
     loadHistory(true);
     loadAgenda();
