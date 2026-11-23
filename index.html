@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://aoyfuceyzjlvjnnhuloy.supabase.co wss://aoyfuceyzjlvjnnhuloy.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
 <title>Qualificação de Leads — Systêxtil</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -518,7 +519,8 @@
       </div>
       <div class="row3">
         <div><label for="hf-uf">UF</label><select id="hf-uf"><option value="">Todas</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
-        <div></div><div></div>
+        <div id="hfDelWrap" class="hidden"><label for="hf-excluidas">Excluídas</label><select id="hf-excluidas"><option value="">Ocultar</option><option value="1">Mostrar só excluídas</option></select></div>
+        <div></div>
       </div>
       <div class="row3">
         <div><label for="hf-de">Criado de</label><input type="date" id="hf-de"></div>
@@ -653,6 +655,7 @@
     var sess = await sb.auth.getSession();
     var meta = sess.data && sess.data.session && sess.data.session.user && sess.data.session.user.app_metadata;
     isGestor = !!meta && meta.role === 'gestor';
+    $('hfDelWrap').classList.toggle('hidden', !isGestor);
     refreshAuditBtn();
     computeAndRender();
     subscribeHistory();
@@ -1007,6 +1010,7 @@
       vendedor: $('hf-vendedor').value.trim(),
       empresa: $('hf-empresa').value.trim(),
       uf: $('hf-uf').value,
+      excluidas: $('hf-excluidas').value,
       de: $('hf-de').value,
       ate: $('hf-ate').value
     };
@@ -1018,6 +1022,7 @@
     var f = getHistoryFilters();
     var q = sb.from('leads').select(cols || '*').order('created_at', { ascending:false });
     if (f.status) q = q.eq('status', f.status);
+    q = f.excluidas ? q.not('deleted_at', 'is', null) : q.is('deleted_at', null);
     if (f.vendedor) q = q.ilike('vendedor', likePattern(f.vendedor));
     if (f.empresa) q = q.ilike('empresa', likePattern(f.empresa));
     if (f.uf) q = q.eq('uf', f.uf);
@@ -1044,12 +1049,12 @@
     histDebounce = setTimeout(function(){ loadHistory(true); }, 300);
   }
 
-  ['hf-status','hf-vendedor','hf-empresa','hf-uf','hf-de','hf-ate'].forEach(function(id){
+  ['hf-status','hf-vendedor','hf-empresa','hf-uf','hf-excluidas','hf-de','hf-ate'].forEach(function(id){
     $(id).addEventListener('input', scheduleHistoryReload);
     $(id).addEventListener('change', scheduleHistoryReload);
   });
   $('hfClearBtn').addEventListener('click', function(){
-    $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = ''; $('hf-uf').value = '';
+    $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = ''; $('hf-uf').value = ''; $('hf-excluidas').value = '';
     $('hf-de').value = ''; $('hf-ate').value = '';
     loadHistory(true);
   });
@@ -1064,6 +1069,18 @@
       return;
     }
     if (currentEditId === row.id) clearForm();
+    loadHistory(true);
+    loadAgenda();
+  }
+
+  async function restoreLead(row){
+    if (!window.confirm('Restaurar a ficha de "' + (row.empresa || 'sem nome') + '"?')) return;
+    var res = await sb.rpc('restore_lead', { p_id: row.id });
+    if (res.error) {
+      console.error(res.error);
+      window.alert('Não foi possível restaurar a ficha.' + (res.error.code ? ' (código ' + res.error.code + ')' : ''));
+      return;
+    }
     loadHistory(true);
     loadAgenda();
   }
@@ -1104,14 +1121,16 @@
           '<span class="hist-score">' + escapeHtml(row.total != null ? row.total : '–') + '</span>' +
           '<span class="hist-pill ' + cls + '">' + escapeHtml(row.classificacao_label || row.classificacao || '') + '</span>' +
           '<span class="hist-pill" style="background:var(--surface-2); color:var(--text-dim);">' + escapeHtml(row.status || 'Rascunho') + '</span>' +
-          (isGestor ? '<button class="hist-del" type="button">Excluir</button>' : '') +
+          (isGestor ? '<button class="hist-del" type="button">' + (row.deleted_at ? 'Restaurar' : 'Excluir') + '</button>' : '') +
         '</div>';
-      item.addEventListener('click', function(){ openLead(row); });
+      var excluida = !!row.deleted_at;
+      if (excluida) item.style.opacity = '0.7';
+      item.addEventListener('click', function(){ if (!excluida) openLead(row); });
       item.addEventListener('keydown', function(e){
-        if (e.target === item && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLead(row); }
+        if (e.target === item && !excluida && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLead(row); }
       });
       var del = item.querySelector('.hist-del');
-      if (del) del.addEventListener('click', function(e){ e.stopPropagation(); deleteLead(row); });
+      if (del) del.addEventListener('click', function(e){ e.stopPropagation(); if (excluida) restoreLead(row); else deleteLead(row); });
       container.appendChild(item);
     });
   }
@@ -1151,7 +1170,7 @@
   async function loadAgenda(){
     var d = new Date();
     var hoje = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    var res = await sb.from('leads').select('*').lte('proxima_contato', hoje)
+    var res = await sb.from('leads').select('*').is('deleted_at', null).lte('proxima_contato', hoje)
       .in('status', ['Rascunho','Em andamento']).order('proxima_contato', { ascending:true }).limit(20);
     var card = $('agendaCard'), list = $('agendaList');
     list.innerHTML = '';
@@ -1289,7 +1308,7 @@
     var seq = ++dashSeq;
     var dias = $('dash-periodo').value;
     $('dashStatus').textContent = 'Carregando...';
-    var q = sb.from('leads').select('vendedor,classificacao,status,total,created_at').limit(5000);
+    var q = sb.from('leads').select('vendedor,classificacao,status,total,created_at').is('deleted_at', null).limit(5000);
     if (dias) q = q.gte('created_at', new Date(Date.now() - parseInt(dias, 10) * 86400000).toISOString());
     var res = await q;
     if (seq !== dashSeq) return;
@@ -1333,7 +1352,7 @@
     if(!$('f-empresa').value.trim()){ setSaveStatus('Informe ao menos o nome da empresa antes de salvar.', true); return false; }
     if (!currentEditId) {
       var nomeExato = $('f-empresa').value.trim().replace(/[\\%_]/g, '\\$&');
-      var dup = await sb.from('leads').select('id').ilike('empresa', nomeExato).limit(1);
+      var dup = await sb.from('leads').select('id').is('deleted_at', null).ilike('empresa', nomeExato).limit(1);
       if (dup.data && dup.data.length && !window.confirm('Já existe uma ficha para "' + $('f-empresa').value.trim() + '". Salvar mesmo assim?')) {
         setSaveStatus('Salvamento cancelado: empresa já cadastrada.', true);
         return false;
