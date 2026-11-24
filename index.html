@@ -615,6 +615,8 @@
     <div class="card"><h2>Por classificação</h2><div id="dashClass"></div></div>
     <div class="card"><h2>Por status</h2><div id="dashStatusBars"></div></div>
     <div class="card"><h2>Por canal de origem</h2><div id="dashCanal"></div></div>
+    <div class="card"><h2>Taxa de ganho por canal</h2><p class="side-note">Entre fichas fechadas (Ganha/Perdida) de cada canal.</p><div id="dashCanalWin"></div></div>
+    <div class="card"><h2>Principais motivos de perda</h2><p class="side-note">Fichas Perdida/Descartada com motivo registrado.</p><div id="dashMotivoPerda"></div></div>
     <div class="card"><h2>Por porte</h2><p class="side-note">Estimado por faturamento anual (faixa) e, na falta, pelo nº de usuários previstos.</p><div id="dashPorte"></div></div>
     <div class="card hidden" id="dashVendCard"><h2>Por vendedor</h2><div id="dashVend"></div></div>
     <div class="card hidden" id="dashVendWinCard"><h2>Taxa de ganho por vendedor</h2><p class="side-note">Entre fichas fechadas (Ganha/Perdida) de cada vendedor.</p><div id="dashVendWin"></div></div>
@@ -1609,27 +1611,73 @@
     });
   }
 
-  function kpi(valor, rotulo){
+  function kpi(valor, rotulo, deltaPct, menorEhMelhor){
     var d = document.createElement('div'); d.className = 'kpi';
     var b = document.createElement('b'); b.textContent = valor;
+    if (deltaPct != null && isFinite(deltaPct)) {
+      var efetivo = menorEhMelhor ? -deltaPct : deltaPct;
+      var arrow = document.createElement('span');
+      arrow.textContent = ' ' + (deltaPct > 0 ? '▲' : deltaPct < 0 ? '▼' : '—') + ' ' + Math.abs(Math.round(deltaPct)) + '%';
+      arrow.style.fontSize = '0.72rem';
+      arrow.style.color = efetivo > 0 ? 'var(--good)' : efetivo < 0 ? 'var(--bad)' : 'var(--text-dim)';
+      b.appendChild(arrow);
+    }
     var s = document.createElement('span'); s.textContent = rotulo;
     d.appendChild(b); d.appendChild(s);
     return d;
   }
+  function pctDelta(atual, anterior){
+    if (anterior == null || !isFinite(anterior) || anterior === 0) return null;
+    if (atual == null || !isFinite(atual)) return null;
+    return (atual - anterior) / Math.abs(anterior) * 100;
+  }
 
   var dashSeq = 0;
+  function agregarResumo(rows){
+    var A = 0, ganhas = 0, fechadas = 0, ciclos = [];
+    rows.forEach(function(r){
+      if (r.classificacao === 'A') A++;
+      if (r.status === 'Ganha' || r.status === 'Perdida') {
+        fechadas++;
+        if (r.status === 'Ganha') ganhas++;
+        if (r.created_at && r.updated_at) {
+          var d = (new Date(r.updated_at) - new Date(r.created_at)) / 86400000;
+          if (d >= 0) ciclos.push(d);
+        }
+      }
+    });
+    return {
+      n: rows.length,
+      pctA: rows.length ? A / rows.length * 100 : null,
+      winRate: fechadas ? ganhas / fechadas * 100 : null,
+      cicloMedio: ciclos.length ? ciclos.reduce(function(a, b){ return a + b; }, 0) / ciclos.length : null
+    };
+  }
+
   async function loadDash(){
     var seq = ++dashSeq;
     var dias = $('dash-periodo').value;
     $('dashStatus').textContent = 'Carregando...';
-    var q = sb.from('leads').select('vendedor,classificacao,status,total,canal,created_at,updated_at,faturamento_faixa,num_usuarios').is('deleted_at', null).limit(5000);
+    var q = sb.from('leads').select('vendedor,classificacao,status,total,canal,created_at,updated_at,faturamento_faixa,num_usuarios,motivo_perda,proxima_contato').is('deleted_at', null).limit(5000);
     if (dias) q = q.gte('created_at', new Date(Date.now() - parseInt(dias, 10) * 86400000).toISOString());
+    var riscoQ = sb.from('leads').select('id', { count:'exact', head:true }).is('deleted_at', null)
+      .not('status', 'in', '(Ganha,Perdida,Descartada)').is('proxima_contato', null);
+    var anteriorPromise = null;
+    if (dias) {
+      var diasNum = parseInt(dias, 10);
+      var inicioAnterior = new Date(Date.now() - diasNum * 2 * 86400000).toISOString();
+      var fimAnterior = new Date(Date.now() - diasNum * 86400000).toISOString();
+      anteriorPromise = sb.from('leads').select('classificacao,status,created_at,updated_at').is('deleted_at', null)
+        .gte('created_at', inicioAnterior).lt('created_at', fimAnterior).limit(5000);
+    }
     var res = await q;
+    var riscoRes = await riscoQ;
+    var anteriorRes = anteriorPromise ? await anteriorPromise : null;
     if (seq !== dashSeq) return;
     if (res.error) { console.error(res.error); $('dashStatus').textContent = 'Não foi possível carregar o painel agora.'; return; }
     var rows = res.data || [];
     $('dashStatus').textContent = rows.length >= 5000 ? 'Mostrando as 5000 fichas mais recentes do período.' : '';
-    var cls = { A:0, B:0, C:0, I:0 }, st = {}, vend = {}, vendFechadas = {}, canal = {}, porte = {}, soma = 0, ciclos = [];
+    var cls = { A:0, B:0, C:0, I:0 }, st = {}, vend = {}, vendFechadas = {}, canal = {}, canalFechadas = {}, porte = {}, motivo = {}, soma = 0, ciclos = [];
     rows.forEach(function(r){
       if (cls[r.classificacao] != null) cls[r.classificacao]++;
       var k = r.status || 'Rascunho'; st[k] = (st[k] || 0) + 1;
@@ -1641,19 +1689,32 @@
         if (!vendFechadas[v]) vendFechadas[v] = { ganhas:0, total:0 };
         vendFechadas[v].total++;
         if (r.status === 'Ganha') vendFechadas[v].ganhas++;
+        if (!canalFechadas[c]) canalFechadas[c] = { ganhas:0, total:0 };
+        canalFechadas[c].total++;
+        if (r.status === 'Ganha') canalFechadas[c].ganhas++;
+      }
+      if ((r.status === 'Perdida' || r.status === 'Descartada') && r.motivo_perda) {
+        motivo[r.motivo_perda] = (motivo[r.motivo_perda] || 0) + 1;
       }
       if ((r.status === 'Ganha' || r.status === 'Perdida') && r.created_at && r.updated_at) {
-        var dias = (new Date(r.updated_at) - new Date(r.created_at)) / 86400000;
-        if (dias >= 0) ciclos.push(dias);
+        var dias2 = (new Date(r.updated_at) - new Date(r.created_at)) / 86400000;
+        if (dias2 >= 0) ciclos.push(dias2);
       }
     });
     var fechadas = (st['Ganha'] || 0) + (st['Perdida'] || 0);
     var cicloMedio = ciclos.length ? Math.round(ciclos.reduce(function(a, b){ return a + b; }, 0) / ciclos.length) : null;
+    var anterior = anteriorRes && !anteriorRes.error ? agregarResumo(anteriorRes.data || []) : null;
+    var pctA = rows.length ? cls.A / rows.length * 100 : null;
+    var winRate = fechadas ? (st['Ganha'] || 0) / fechadas * 100 : null;
     var kp = $('dashKpis'); kp.innerHTML = '';
-    kp.appendChild(kpi(rows.length, 'fichas no período'));
-    kp.appendChild(kpi(rows.length ? Math.round(cls.A / rows.length * 100) + '%' : '—', 'qualificadas (A)'));
-    kp.appendChild(kpi(fechadas ? Math.round((st['Ganha'] || 0) / fechadas * 100) + '%' : '—', 'taxa de ganho (ganhas / ganhas + perdidas)'));
-    kp.appendChild(kpi(cicloMedio != null ? cicloMedio + ' dias' : '—', 'ciclo médio até Ganha/Perdida (baseado na última atualização)'));
+    kp.appendChild(kpi(rows.length, 'fichas no período', anterior ? pctDelta(rows.length, anterior.n) : null));
+    kp.appendChild(kpi(pctA != null ? Math.round(pctA) + '%' : '—', 'qualificadas (A)', anterior ? pctDelta(pctA, anterior.pctA) : null));
+    kp.appendChild(kpi(winRate != null ? Math.round(winRate) + '%' : '—', 'taxa de ganho (ganhas / ganhas + perdidas)', anterior ? pctDelta(winRate, anterior.winRate) : null));
+    kp.appendChild(kpi(cicloMedio != null ? cicloMedio + ' dias' : '—', 'ciclo médio até Ganha/Perdida (baseado na última atualização)', anterior ? pctDelta(cicloMedio, anterior.cicloMedio) : null, true));
+    kp.appendChild(kpi(riscoRes.error ? '—' : (riscoRes.count || 0), 'fichas abertas sem próximo contato agendado', null));
+    if (dias) {
+      $('dashStatus').textContent = (rows.length >= 5000 ? 'Mostrando as 5000 fichas mais recentes do período. ' : '') + 'Variação vs. os ' + dias + ' dias anteriores.';
+    }
     renderBars($('dashClass'), [
       { label:'A — Qualificado', value:cls.A, cls:'A' }, { label:'B — Maturação', value:cls.B, cls:'B' },
       { label:'C — Desqualificado', value:cls.C, cls:'C' }, { label:'Incompleta', value:cls.I, cls:'I' }
@@ -1665,6 +1726,14 @@
     }));
     renderBars($('dashCanal'), Object.keys(canal).sort(function(a, b){ return canal[b] - canal[a]; })
       .map(function(k){ return { label:k, value:canal[k] }; }));
+    var canalWin = Object.keys(canalFechadas).filter(function(c){ return canalFechadas[c].total > 0; })
+      .map(function(c){ return { c:c, pct:Math.round(canalFechadas[c].ganhas / canalFechadas[c].total * 100), n:canalFechadas[c].total }; })
+      .sort(function(a, b){ return b.pct - a.pct; });
+    renderBars($('dashCanalWin'), canalWin.map(function(x){ return { label:x.c + ' (' + x.n + ' fechadas)', value:x.pct, cls:'A' }; }));
+    if (!canalWin.length) $('dashCanalWin').textContent = 'Sem fichas fechadas no período.';
+    var motivoOrdenado = Object.keys(motivo).sort(function(a, b){ return motivo[b] - motivo[a]; });
+    renderBars($('dashMotivoPerda'), motivoOrdenado.map(function(m){ return { label:m, value:motivo[m], cls:'C' }; }));
+    if (!motivoOrdenado.length) $('dashMotivoPerda').textContent = 'Sem motivo registrado no período.';
     var porteOrdem = ['Pequeno','Médio','Grande','Não informado'];
     renderBars($('dashPorte'), porteOrdem.filter(function(k){ return porte[k]; }).map(function(k){ return { label:k, value:porte[k] }; }));
     if (isGestor) {
