@@ -69,6 +69,10 @@
   details.ref .ref-body{ padding:0 14px 13px; font-size:0.85rem; color:var(--text-dim); }
   details.ref .ref-body p{ margin:6px 0; color:var(--text); }
   details.ref .ref-body .tag{ font-size:0.74rem; color:var(--text-dim); }
+  .resp-row{ margin:2px 0 10px; }
+  .resp-input{ width:100%; font-family:var(--font-body); font-size:0.85rem; color:var(--text);
+    background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:6px 8px; margin:0; }
+  .resp-input:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
   .side-note{ font-size:0.8rem; color:var(--text-dim); margin:0 0 14px; }
   .copy-btn{ border:1px solid var(--border); background:var(--surface-2); color:var(--text); font-size:0.82rem; padding:7px 12px; border-radius:7px; cursor:pointer; margin-top:6px; }
   .copy-btn:hover{ border-color:var(--accent); }
@@ -446,9 +450,13 @@
           <summary>Checklist de qualificação (SDR)</summary>
           <div class="ref-body">
             <p>Qual setor você atua? Qual o segmento dentro da cadeia têxtil/moda?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="setor_atuacao" placeholder="Resposta do cliente..."></div>
             <p>Já usam algum ERP? Se sim, qual?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-sync="f-erp" placeholder="Resposta do cliente..."></div>
             <p>Quantos usuários simultâneos utilizam ou utilizarão o sistema?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-sync="f-num-usuarios" placeholder="Resposta do cliente..."></div>
             <p>Há alguma demanda específica ou desafio atual que possamos ajudar a resolver?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="demanda_desafio" placeholder="Resposta do cliente..."></div>
             <span class="tag">Registrar canal de origem e e-mail/telefone do contato na ficha antes de encaminhar.</span>
           </div>
         </details>
@@ -482,9 +490,13 @@
           <summary>2. Perfil da empresa</summary>
           <div class="ref-body">
             <p>Atuação na cadeia têxtil — confecção, atacado, varejo ou mais de uma?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="setor_atuacao" placeholder="Resposta do cliente..."></div>
             <p>Produção própria, terceirizada ou mista?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="producao_tipo" placeholder="Resposta do cliente..."></div>
             <p>Quantas pessoas usam o sistema hoje, considerando todas as áreas?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-sync="f-num-usuarios" placeholder="Resposta do cliente..."></div>
             <p>Qual ERP usam atualmente?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-sync="f-erp" placeholder="Resposta do cliente..."></div>
             <span class="tag">Aprofundar se necessário: engenharia de produto estruturada ou em planilha?</span>
           </div>
         </details>
@@ -492,15 +504,20 @@
           <summary>3. Dor operacional</summary>
           <div class="ref-body">
             <p>Vocês sabem o custo real da peça ou trabalham com custo planejado?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="custo_real" placeholder="Resposta do cliente..."></div>
             <p>O PCP entrega prazo com segurança ou depende de experiência pessoal?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="pcp_prazo" placeholder="Resposta do cliente..."></div>
             <p>Isso impacta mais custo, prazo ou decisão? Já tentaram resolver ou é algo antigo?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="impacto_decisao" placeholder="Resposta do cliente..."></div>
           </div>
         </details>
         <details class="ref">
           <summary>4. Momento + prazo</summary>
           <div class="ref-body">
             <p>O que motivou buscar solução agora — crescimento, troca de ERP ou problema específico?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="motivo_agora" placeholder="Resposta do cliente..."></div>
             <p>Pretendem decidir em quanto tempo?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="prazo_decisao_detalhe" placeholder="Resposta do cliente..."></div>
             <span class="tag">Crescimento = alto · Troca = médio · Curiosidade = descartar</span>
           </div>
         </details>
@@ -508,13 +525,16 @@
           <summary>5. Decisor + concorrência</summary>
           <div class="ref-body">
             <p>Além de você, quem participa da decisão — diretoria, sócios ou responsável de TI?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="decisor_participantes" placeholder="Resposta do cliente..."></div>
             <p>Já avaliaram outra solução ou fornecedor?</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="concorrencia_detalhe" placeholder="Resposta do cliente..."></div>
           </div>
         </details>
         <details class="ref">
           <summary>6. Ancoragem + investimento</summary>
           <div class="ref-body">
             <p>"Nosso trabalho é reestruturação de processo industrial — engenharia de produto, custos, PCP, estoque e backoffice integrados. Projetos desse porte partem de <span id="refPreco">R$200 mil + mensalidade de R$6 mil (10 acessos)</span>. Isso está dentro do que a empresa avaliaria hoje?"</p>
+            <div class="resp-row"><input type="text" class="resp-input" data-key="reacao_investimento" placeholder="Resposta do cliente..."></div>
           </div>
         </details>
         <details class="ref">
@@ -666,6 +686,13 @@
   var manualLogout = false;
   var recoveryMode = false;
   var PAGE_SIZE = 50;
+  var roteiroRespostas = {};
+  var ROTEIRO_LABELS = {
+    setor_atuacao:'Setor/atuação', demanda_desafio:'Demanda/desafio específico', producao_tipo:'Produção (própria/terceirizada/mista)',
+    custo_real:'Custo real vs. planejado', pcp_prazo:'PCP entrega prazo com segurança', impacto_decisao:'Impacto (custo/prazo/decisão)',
+    motivo_agora:'Motivo para buscar solução agora', prazo_decisao_detalhe:'Prazo para decidir',
+    decisor_participantes:'Participantes da decisão', concorrencia_detalhe:'Outra solução avaliada', reacao_investimento:'Reação ao investimento'
+  };
 
   function $(id){ return document.getElementById(id); }
 
@@ -1043,6 +1070,33 @@
   $('f-apresentacao-enviada').addEventListener('change', function(){ toggleMaterial('apresentacao', 'f-apresentacao-enviada', 'apresentacaoData'); });
   $('f-proposta-enviada').addEventListener('change', function(){ toggleMaterial('proposta', 'f-proposta-enviada', 'propostaData'); });
 
+  // Campos de resposta dos roteiros (SDR + Roteiro de apoio). Perguntas repetidas entre os
+  // dois cards usam o mesmo data-key (texto livre, guardado em roteiro_respostas) ou o mesmo
+  // data-sync (campo já existente no Card 1, ex.: ERP atual / Nº de usuários).
+  document.querySelectorAll('.resp-input[data-key]').forEach(function(el){
+    el.addEventListener('input', function(){
+      var k = el.dataset.key;
+      roteiroRespostas[k] = el.value;
+      document.querySelectorAll('.resp-input[data-key="' + k + '"]').forEach(function(other){
+        if (other !== el) other.value = el.value;
+      });
+    });
+  });
+  document.querySelectorAll('.resp-input[data-sync]').forEach(function(el){
+    el.addEventListener('input', function(){
+      var target = el.dataset.sync;
+      $(target).value = el.value;
+      document.querySelectorAll('.resp-input[data-sync="' + target + '"]').forEach(function(other){
+        if (other !== el) other.value = el.value;
+      });
+    });
+  });
+  ['f-erp', 'f-num-usuarios'].forEach(function(id){
+    $(id).addEventListener('input', function(){
+      document.querySelectorAll('.resp-input[data-sync="' + id + '"]').forEach(function(el){ el.value = $(id).value; });
+    });
+  });
+
   function applyFormData(row){
     $('f-vendedor').value = row.vendedor || '';
     ids.forEach(function(id){
@@ -1061,6 +1115,9 @@
     $('f-proposta-enviada').checked = !!materiaisEnviados.proposta;
     renderMaterialLabel('apresentacaoData', materiaisEnviados.apresentacao);
     renderMaterialLabel('propostaData', materiaisEnviados.proposta);
+    roteiroRespostas = (row.roteiro_respostas && typeof row.roteiro_respostas === 'object') ? Object.assign({}, row.roteiro_respostas) : {};
+    document.querySelectorAll('.resp-input[data-key]').forEach(function(el){ el.value = roteiroRespostas[el.dataset.key] || ''; });
+    document.querySelectorAll('.resp-input[data-sync]').forEach(function(el){ el.value = $(el.dataset.sync).value || ''; });
     isDirty = false;
     computeAndRender();
   }
@@ -1078,6 +1135,8 @@
     $('f-proposta-enviada').checked = false;
     renderMaterialLabel('apresentacaoData', null);
     renderMaterialLabel('propostaData', null);
+    roteiroRespostas = {};
+    document.querySelectorAll('.resp-input').forEach(function(el){ el.value = ''; });
     currentEditId = null;
     isDirty = false;
     refreshAuditBtn();
@@ -1099,6 +1158,12 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch){
       return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch];
     });
+  }
+
+  function flattenRoteiro(obj){
+    if (!obj || typeof obj !== 'object') return '';
+    return Object.keys(obj).filter(function(k){ return obj[k]; })
+      .map(function(k){ return (ROTEIRO_LABELS[k] || k) + ': ' + obj[k]; }).join(' | ');
   }
 
   var allHistoryRows = [];
@@ -1353,7 +1418,8 @@
         ['Apresentação enviada', function(r){ return r.apresentacao_enviada_em ? fmtDateTime(r.apresentacao_enviada_em) : 'Não'; }],
         ['Proposta enviada', function(r){ return r.proposta_enviada_em ? fmtDateTime(r.proposta_enviada_em) : 'Não'; }],
         ['Observações comerciais', function(r){ return r.obs; }],
-        ['Risco de sucessão/família', function(r){ return r.obs_sucessao; }]
+        ['Risco de sucessão/família', function(r){ return r.obs_sucessao; }],
+        ['Respostas do roteiro', function(r){ return flattenRoteiro(r.roteiro_respostas); }]
       ];
       var nomesCrit = { perfil:'Perfil', complexidade:'Complexidade', dor:'Dor', momento:'Momento', decisor:'Decisor', investimento:'Investimento', maturidade:'Maturidade', porte:'Porte' };
       crits.forEach(function(c){
@@ -1487,6 +1553,7 @@
         proxima_contato: d['f-proxima-contato'] || null, tentativas: toIntOrNull(d['f-tentativas']),
         flag_financeiro: d.flag_financeiro, flag_aderencia: d.flag_aderencia,
         apresentacao_enviada_em: materiaisEnviados.apresentacao, proposta_enviada_em: materiaisEnviados.proposta,
+        roteiro_respostas: roteiroRespostas,
         total: d.total, classificacao: d.classificacao, classificacao_label: d.classificacao_label
       };
       crits.forEach(function(c){ record['crit_'+c] = d['crit_'+c]; });
