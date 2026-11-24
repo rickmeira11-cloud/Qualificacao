@@ -7,18 +7,16 @@ Base: roteiro de prospecção da Systêxtil (SDR → Executivo de vendas, canais
 - Coluna `canal` no Supabase (texto, default null). Incluir no `fieldToColumn`, no `record` de save, no `applyFormData`, no `clearForm`, no CSV export e no resumo do `copyBtn`.
 - Adicionar filtro por canal no Histórico e quebra "Por canal" no Painel (mesmo padrão de "Por status"/"Por classificação").
 
-## 2. Separar SDR x Executivo de vendas
-- Hoje só existe `vendedor` (quem está logado). Avaliar se cabe um campo opcional `f-executivo` (nome de quem recebe o lead após qualificação do SDR), preenchido manualmente, sem trocar o dono/RLS da ficha (owner continua sendo quem criou).
-- Se a operação real tiver só uma pessoa fazendo os dois papéis, pular este item e registrar a decisão no commit.
+## 2. Separar SDR x Executivo de vendas — DESCARTADO
+- Confirmado pelo usuário: na Systêxtil o Executivo de Vendas (Vendedor) acumula a função de SDR. Não há handoff entre papéis, então o campo `f-executivo` não é necessário.
+- Ajustado o script de encerramento "qualificado" no card "Script do SDR" para não mencionar encaminhamento a um executivo separado.
 
 ## 3. Contato: e-mail e telefone
 - Adicionar `f-contato-email` e `f-contato-telefone` ao lado do campo `f-contato` existente (Card 1), colunas `contato_email` e `contato_telefone`.
 - Entram no `fieldToColumn`, CSV export e resumo do `copyBtn`.
 
-## 4. SLA de primeiro contato (regra do "5 minutos")
-- Novo campo `f-recebido-em` (datetime, pode ser timestamp automático no insert) e `f-primeiro-contato-em` (preenchido manualmente pelo SDR ao ligar).
-- Calcular e exibir (não salvar calculado) o tempo decorrido entre os dois, com destaque visual se > 5 minutos.
-- Avaliar se isso é demanda real agora ou fica como item futuro — se for complexo demais para o escopo atual, documentar como pendência em vez de implementar pela metade.
+## 4. SLA de primeiro contato (regra do "5 minutos") — DESCARTADO
+- Confirmado pelo usuário: desconsiderar. Não implementar.
 
 ## 5. Status "Em nutrição"
 - Adicionar opção "Em nutrição" ao `f-status` (select) e ao enum/constraint do banco, para o cenário "lead desqualificado, mas mantido em funil de conteúdo" — hoje isso cai em "Descartada", que não é o mesmo conceito do roteiro.
