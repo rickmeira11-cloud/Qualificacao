@@ -1655,7 +1655,8 @@
     }catch(e){
       console.error(e);
       if (e && (e.status === 401 || /jwt/i.test(e.message || ''))) { setSaveStatus('Sessão expirada. Entre novamente.', true); handleSignedOut(); return false; }
-      setSaveStatus(e && e.code === '42501' ? 'Sem permissão para salvar esta ficha.' : 'Não foi possível salvar agora. Tente novamente.', true);
+      var detalhe = e && (e.message || e.details || e.hint) ? ' (' + [e.message, e.details, e.hint].filter(Boolean).join(' — ') + ')' : '';
+      setSaveStatus(e && e.code === '42501' ? 'Sem permissão para salvar esta ficha.' : 'Não foi possível salvar agora. Tente novamente.' + detalhe, true);
       ok = false;
     }finally{
       btn.disabled = false;
