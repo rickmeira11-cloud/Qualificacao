@@ -264,6 +264,21 @@
           <div><label for="f-uf">UF</label><select id="f-uf"><option value="">—</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
         </div>
         <div class="row2">
+          <div>
+            <label for="f-perfil-contato">Perfil do contato</label>
+            <select id="f-perfil-contato">
+              <option value="">—</option>
+              <option>Dono/Sócio</option>
+              <option>Financeiro/Controller</option>
+              <option>Produção/PCP</option>
+              <option>TI/Sistemas</option>
+              <option>Compras</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div><label>Porte estimado</label><div><span class="tag" id="porteBadge">—</span></div></div>
+        </div>
+        <div class="row2">
           <div><label for="f-segmento">Segmento</label><input type="text" id="f-segmento" placeholder="Confecção, têxtil, private label..."></div>
           <div><label for="f-erp">ERP atual</label><input type="text" id="f-erp"></div>
         </div>
@@ -464,6 +479,7 @@
       <div class="card">
         <h2>Script do SDR — 1º contato</h2>
         <p class="side-note">Prazo: retornar o lead em até 5 minutos. Checklist mínimo antes de encaminhar ao executivo: setor, segmento, ERP atual, nº de usuários simultâneos e a demanda/desafio específico.</p>
+        <div class="ref-body" id="dicaPersona" style="margin-bottom:12px;"></div>
 
         <details class="ref">
           <summary>Abertura por canal</summary>
@@ -552,6 +568,7 @@
           <summary>5. Decisor + concorrência</summary>
           <div class="ref-body">
             <p>Além de você, quem participa da decisão — diretoria, sócios ou responsável de TI?</p>
+            <span class="tag" id="decisorHintPorte" style="display:block; margin-bottom:6px;"></span>
             <div class="resp-row"><input type="text" class="resp-input" data-key="decisor_participantes" placeholder="Resposta do cliente..."></div>
             <p>Já avaliaram outra solução ou fornecedor?</p>
             <div class="resp-row"><input type="text" class="resp-input" data-key="concorrencia_detalhe" placeholder="Resposta do cliente..."></div>
@@ -598,11 +615,12 @@
     <div class="card"><h2>Por classificação</h2><div id="dashClass"></div></div>
     <div class="card"><h2>Por status</h2><div id="dashStatusBars"></div></div>
     <div class="card"><h2>Por canal de origem</h2><div id="dashCanal"></div></div>
+    <div class="card"><h2>Por porte</h2><p class="side-note">Estimado por faturamento anual (faixa) e, na falta, pelo nº de usuários previstos.</p><div id="dashPorte"></div></div>
     <div class="card hidden" id="dashVendCard"><h2>Por vendedor</h2><div id="dashVend"></div></div>
     <div class="card hidden" id="dashVendWinCard"><h2>Taxa de ganho por vendedor</h2><p class="side-note">Entre fichas fechadas (Ganha/Perdida) de cada vendedor.</p><div id="dashVendWin"></div></div>
     <div class="card">
       <h2>Leads frios</h2>
-      <p class="side-note">Fichas em aberto sem nenhuma atualização há <span id="leadsFriosDiasLabel">7</span>+ dias. Clique para abrir.</p>
+      <p class="side-note" id="leadsFriosDiasLabel">Fichas em aberto sem atualização além do limite por porte. Clique para abrir.</p>
       <div id="dashLeadsFrios"></div>
     </div>
     <div class="card">
@@ -711,7 +729,7 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  var ids = ['f-empresa','f-contato','f-contato-email','f-contato-telefone','f-canal','f-cargo','f-cidade','f-uf','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
+  var ids = ['f-empresa','f-contato','f-contato-email','f-contato-telefone','f-canal','f-cargo','f-cidade','f-uf','f-perfil-contato','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
     'f-faturamento','f-num-usuarios','f-sazonalidade','f-stack','f-obs','f-obs-sucessao','f-status','f-proxima-contato','f-tentativas','f-motivo-perda'];
   var crits = ['perfil','complexidade','dor','momento','decisor','investimento','maturidade','porte'];
   var CUT_A = 33, CUT_B = 23;
@@ -1090,12 +1108,60 @@
 
   var fieldToColumn = {
     'f-empresa':'empresa', 'f-contato':'contato', 'f-contato-email':'contato_email', 'f-contato-telefone':'contato_telefone',
-    'f-canal':'canal', 'f-cargo':'cargo', 'f-cidade':'cidade', 'f-uf':'uf', 'f-segmento':'segmento',
+    'f-canal':'canal', 'f-cargo':'cargo', 'f-cidade':'cidade', 'f-uf':'uf', 'f-perfil-contato':'perfil_contato', 'f-segmento':'segmento',
     'f-erp':'erp', 'f-produto':'produto', 'f-timeline':'timeline', 'f-concorrencia':'concorrencia',
     'f-faturamento':'faturamento_faixa', 'f-num-usuarios':'num_usuarios', 'f-sazonalidade':'sazonalidade',
     'f-stack':'stack_atual', 'f-obs':'obs', 'f-obs-sucessao':'obs_sucessao', 'f-status':'status',
     'f-proxima-contato':'proxima_contato', 'f-tentativas':'tentativas', 'f-motivo-perda':'motivo_perda'
   };
+
+  // Porte estimado: por faturamento anual (faixa) e, na falta, pelo nº de usuários previstos.
+  function classifyPorte(faturamentoFaixa, numUsuarios){
+    if (faturamentoFaixa === 'Até R$5 milhões') return 'Pequeno';
+    if (faturamentoFaixa === 'R$5-20 milhões' || faturamentoFaixa === 'R$20-50 milhões') return 'Médio';
+    if (faturamentoFaixa === 'Acima de R$50 milhões') return 'Grande';
+    var n = parseInt(numUsuarios, 10);
+    if (!isNaN(n)) {
+      if (n < 10) return 'Pequeno';
+      if (n <= 50) return 'Médio';
+      return 'Grande';
+    }
+    return null;
+  }
+
+  var PERSONA_DICAS = {
+    'Dono/Sócio':'Fale direto, sem tecniquês. Foco em crescimento, profissionalização e confiança pessoal — ele decide rápido, mas é sensível a preço/payback.',
+    'Financeiro/Controller':'Leve a conversa pra ROI, custo total e condições de pagamento. Compare com o custo de continuar como está (planilha, erro, retrabalho).',
+    'Produção/PCP':'Fale a língua operacional: rastreabilidade, prazo de entrega, redução de erro/retrabalho. É quem sente a dor todo dia.',
+    'TI/Sistemas':'Foco em integração com o que já existe, segurança dos dados e plano de migração. Evite prometer prazo sem checar com o técnico.',
+    'Compras':'Processo mais formal — pergunte se existe cotação, comitê ou RFP antes de avançar. Documentação importa mais que relacionamento aqui.'
+  };
+  var PORTE_DICAS = {
+    'Pequeno':'Porte pequeno: decisão tende a ser rápida e concentrada no dono. Ciclo curto, sensível a preço.',
+    'Médio':'Porte médio: decisão por um pequeno comitê (dono + financeiro/produção). Busque um case parecido do setor.',
+    'Grande':'Porte grande: decisão formal, múltiplos stakeholders, ciclo mais longo. Pergunte cedo sobre processo de compras/RFP.'
+  };
+  var DECISOR_HINT_POR_PORTE = {
+    'Pequeno':'Pergunte direto: "Você mesmo decide ou mais alguém precisa aprovar?"',
+    'Médio':'Pergunte quem mais participa: financeiro, produção, diretoria.',
+    'Grande':'Pergunte pelo processo formal: existe comitê de compras? TI avalia? Vai ter RFP?'
+  };
+  function updatePorteEPersona(){
+    var porte = classifyPorte($('f-faturamento').value, $('f-num-usuarios').value);
+    var badge = $('porteBadge');
+    badge.textContent = porte || '—';
+    var persona = $('f-perfil-contato').value;
+    var dica = $('dicaPersona');
+    var partes = [];
+    if (persona && PERSONA_DICAS[persona]) partes.push('<p><strong>' + escapeHtml(persona) + ':</strong> ' + escapeHtml(PERSONA_DICAS[persona]) + '</p>');
+    if (porte && PORTE_DICAS[porte]) partes.push('<p>' + escapeHtml(PORTE_DICAS[porte]) + '</p>');
+    dica.innerHTML = partes.join('');
+    $('decisorHintPorte').textContent = (porte && DECISOR_HINT_POR_PORTE[porte]) ? DECISOR_HINT_POR_PORTE[porte] : '';
+  }
+  ['f-faturamento','f-num-usuarios','f-perfil-contato'].forEach(function(id){
+    $(id).addEventListener('input', updatePorteEPersona);
+    $(id).addEventListener('change', updatePorteEPersona);
+  });
 
   // apresentacao/proposta: guardam o timestamp original (ou null) para não reenviar a mesma data a cada save
   var materiaisEnviados = { apresentacao: null, proposta: null };
@@ -1162,6 +1228,7 @@
     document.querySelectorAll('.resp-input[data-key]').forEach(function(el){ el.value = roteiroRespostas[el.dataset.key] || ''; });
     document.querySelectorAll('.resp-input[data-sync]').forEach(function(el){ el.value = $(el.dataset.sync).value || ''; });
     renderTimeline(row);
+    updatePorteEPersona();
     isDirty = false;
     computeAndRender();
   }
@@ -1202,6 +1269,7 @@
     roteiroRespostas = {};
     document.querySelectorAll('.resp-input').forEach(function(el){ el.value = ''; });
     $('timelineCard').classList.add('hidden');
+    updatePorteEPersona();
     currentEditId = null;
     isDirty = false;
     refreshAuditBtn();
@@ -1464,6 +1532,8 @@
         ['E-mail do contato', function(r){ return r.contato_email; }],
         ['Telefone do contato', function(r){ return r.contato_telefone; }],
         ['Cargo', function(r){ return r.cargo; }],
+        ['Perfil do contato', function(r){ return r.perfil_contato; }],
+        ['Porte estimado', function(r){ return classifyPorte(r.faturamento_faixa, r.num_usuarios); }],
         ['Cidade', function(r){ return r.cidade; }],
         ['UF', function(r){ return r.uf; }],
         ['Segmento', function(r){ return r.segmento; }],
@@ -1552,19 +1622,20 @@
     var seq = ++dashSeq;
     var dias = $('dash-periodo').value;
     $('dashStatus').textContent = 'Carregando...';
-    var q = sb.from('leads').select('vendedor,classificacao,status,total,canal,created_at,updated_at').is('deleted_at', null).limit(5000);
+    var q = sb.from('leads').select('vendedor,classificacao,status,total,canal,created_at,updated_at,faturamento_faixa,num_usuarios').is('deleted_at', null).limit(5000);
     if (dias) q = q.gte('created_at', new Date(Date.now() - parseInt(dias, 10) * 86400000).toISOString());
     var res = await q;
     if (seq !== dashSeq) return;
     if (res.error) { console.error(res.error); $('dashStatus').textContent = 'Não foi possível carregar o painel agora.'; return; }
     var rows = res.data || [];
     $('dashStatus').textContent = rows.length >= 5000 ? 'Mostrando as 5000 fichas mais recentes do período.' : '';
-    var cls = { A:0, B:0, C:0, I:0 }, st = {}, vend = {}, vendFechadas = {}, canal = {}, soma = 0, ciclos = [];
+    var cls = { A:0, B:0, C:0, I:0 }, st = {}, vend = {}, vendFechadas = {}, canal = {}, porte = {}, soma = 0, ciclos = [];
     rows.forEach(function(r){
       if (cls[r.classificacao] != null) cls[r.classificacao]++;
       var k = r.status || 'Rascunho'; st[k] = (st[k] || 0) + 1;
       var v = r.vendedor || '—'; vend[v] = (vend[v] || 0) + 1;
       var c = r.canal || 'Não informado'; canal[c] = (canal[c] || 0) + 1;
+      var p = classifyPorte(r.faturamento_faixa, r.num_usuarios) || 'Não informado'; porte[p] = (porte[p] || 0) + 1;
       soma += r.total || 0;
       if (r.status === 'Ganha' || r.status === 'Perdida') {
         if (!vendFechadas[v]) vendFechadas[v] = { ganhas:0, total:0 };
@@ -1594,6 +1665,8 @@
     }));
     renderBars($('dashCanal'), Object.keys(canal).sort(function(a, b){ return canal[b] - canal[a]; })
       .map(function(k){ return { label:k, value:canal[k] }; }));
+    var porteOrdem = ['Pequeno','Médio','Grande','Não informado'];
+    renderBars($('dashPorte'), porteOrdem.filter(function(k){ return porte[k]; }).map(function(k){ return { label:k, value:porte[k] }; }));
     if (isGestor) {
       renderBars($('dashVend'), Object.keys(vend).sort(function(a, b){ return vend[b] - vend[a]; })
         .map(function(k){ return { label:k, value:vend[k] }; }));
@@ -1605,28 +1678,33 @@
     }
   }
 
-  var LEADS_FRIOS_DIAS = 7;
+  // Limite de dias sem atualização varia por porte: empresa pequena decide rápido (silêncio pesa mais cedo),
+  // grande leva mais tempo naturalmente entre contatos.
+  var LEADS_FRIOS_DIAS_POR_PORTE = { 'Pequeno':3, 'Médio':7, 'Grande':14 };
+  var LEADS_FRIOS_DIAS_PADRAO = 7;
   async function loadLeadsFrios(){
     var cont = $('dashLeadsFrios');
-    $('leadsFriosDiasLabel').textContent = LEADS_FRIOS_DIAS;
+    $('leadsFriosDiasLabel').textContent = 'Fichas em aberto sem atualização há mais tempo que o limite do porte (Pequeno: ' +
+      LEADS_FRIOS_DIAS_POR_PORTE['Pequeno'] + 'd · Médio: ' + LEADS_FRIOS_DIAS_POR_PORTE['Médio'] + 'd · Grande: ' + LEADS_FRIOS_DIAS_POR_PORTE['Grande'] + 'd). Clique para abrir.';
     cont.innerHTML = 'Carregando...';
     var res = await sb.from('leads').select('*').is('deleted_at', null)
       .not('status', 'in', '(Ganha,Perdida,Descartada)').order('updated_at', { ascending:true }).limit(300);
     if (res.error) { console.error(res.error); cont.textContent = 'Não foi possível carregar os leads frios agora.'; return; }
-    var limite = Date.now() - LEADS_FRIOS_DIAS * 86400000;
-    var rows = (res.data || []).filter(function(r){
+    var rows = (res.data || []).map(function(r){
       var ref = r.updated_at || r.created_at;
-      return ref && new Date(ref).getTime() < limite;
-    });
+      var porte = classifyPorte(r.faturamento_faixa, r.num_usuarios);
+      var limiteDias = LEADS_FRIOS_DIAS_POR_PORTE[porte] || LEADS_FRIOS_DIAS_PADRAO;
+      var diasParado = ref ? Math.floor((Date.now() - new Date(ref).getTime()) / 86400000) : -1;
+      return { row:r, porte:porte, diasParado:diasParado, limiteDias:limiteDias };
+    }).filter(function(x){ return x.diasParado >= x.limiteDias; });
     cont.innerHTML = '';
     if (!rows.length) { cont.textContent = 'Nenhum lead frio no momento.'; return; }
-    rows.forEach(function(row){
-      var ref = row.updated_at || row.created_at;
-      var diasParado = Math.floor((Date.now() - new Date(ref).getTime()) / 86400000);
-      var sugestao = (row.status === 'Em andamento' && diasParado >= 15) ? ' · sugestão: mover para Em nutrição' : '';
+    rows.forEach(function(x){
+      var row = x.row;
+      var sugestao = (row.status === 'Em andamento' && x.diasParado >= 15) ? ' · sugestão: mover para Em nutrição' : '';
       var item = document.createElement('div'); item.className = 'hist-item'; item.style.cursor = 'pointer';
       item.innerHTML = '<div class="hist-main"><div class="hist-empresa">' + escapeHtml(row.empresa || 'Sem nome') + '</div>' +
-        '<div class="hist-meta atrasado">' + diasParado + ' dias sem atualização · ' + escapeHtml(row.status || 'Rascunho') +
+        '<div class="hist-meta atrasado">' + x.diasParado + ' dias sem atualização (limite ' + x.limiteDias + 'd' + (x.porte ? ', porte ' + x.porte : '') + ') · ' + escapeHtml(row.status || 'Rascunho') +
         (row.vendedor ? ' · ' + escapeHtml(row.vendedor) : '') + escapeHtml(sugestao) + '</div></div>';
       item.addEventListener('click', function(){ openLead(row); });
       cont.appendChild(item);
@@ -1784,6 +1862,7 @@
   $('critInvestHint').textContent = 'Compatibilidade com ' + PRECO.implantacao + ' + ' + PRECO.mensal + '/mês';
   $('refPreco').textContent = PRECO.implantacao + ' + mensalidade de ' + PRECO.mensal + ' (' + PRECO.acessos + ' acessos)';
   computeAndRender();
+  updatePorteEPersona();
   checkSession();
 })();
 </script>
