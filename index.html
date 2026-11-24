@@ -223,6 +223,23 @@
           <div><label for="f-contato">Contato</label><input type="text" id="f-contato"></div>
         </div>
         <div class="row3">
+          <div>
+            <label for="f-canal">Canal de origem</label>
+            <select id="f-canal">
+              <option value="">—</option>
+              <option>Site</option>
+              <option>WhatsApp receptivo</option>
+              <option>WhatsApp ativo</option>
+              <option>Ligação ativa</option>
+              <option>E-mail</option>
+              <option>Indicação</option>
+              <option>Outro</option>
+            </select>
+          </div>
+          <div><label for="f-contato-email">E-mail do contato</label><input type="text" id="f-contato-email"></div>
+          <div><label for="f-contato-telefone">Telefone do contato</label><input type="text" id="f-contato-telefone"></div>
+        </div>
+        <div class="row3">
           <div><label for="f-cargo">Cargo</label><input type="text" id="f-cargo"></div>
           <div><label for="f-cidade">Cidade</label><input type="text" id="f-cidade"></div>
           <div><label for="f-uf">UF</label><select id="f-uf"><option value="">—</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
@@ -382,6 +399,7 @@
             <select id="f-status">
               <option>Rascunho</option>
               <option>Em andamento</option>
+              <option>Em nutrição</option>
               <option>Ganha</option>
               <option>Perdida</option>
               <option>Descartada</option>
@@ -392,6 +410,10 @@
         <div class="row2">
           <div><label for="f-tentativas">Nº de tentativas de contato</label><input type="number" min="0" id="f-tentativas" placeholder="Ex: 2"></div>
           <div></div>
+        </div>
+        <div class="row2">
+          <div><label class="chk" style="display:flex; align-items:center; gap:8px; font-size:0.84rem; cursor:pointer;"><input type="checkbox" id="f-apresentacao-enviada" style="width:16px; height:16px;"> Apresentação enviada <span class="side-note" id="apresentacaoData" style="margin:0;"></span></label></div>
+          <div><label class="chk" style="display:flex; align-items:center; gap:8px; font-size:0.84rem; cursor:pointer;"><input type="checkbox" id="f-proposta-enviada" style="width:16px; height:16px;"> Proposta enviada <span class="side-note" id="propostaData" style="margin:0;"></span></label></div>
         </div>
         <label for="f-obs">Observações comerciais</label>
         <textarea id="f-obs"></textarea>
@@ -408,6 +430,43 @@
     </div>
 
     <div>
+      <div class="card">
+        <h2>Script do SDR — 1º contato</h2>
+        <p class="side-note">Prazo: retornar o lead em até 5 minutos. Checklist mínimo antes de encaminhar ao executivo: setor, segmento, ERP atual, nº de usuários simultâneos e a demanda/desafio específico.</p>
+
+        <details class="ref">
+          <summary>Abertura por canal</summary>
+          <div class="ref-body">
+            <p><strong>Site / WhatsApp receptivo:</strong> "Boa tarde! Me chamo Pedro e faço parte do time comercial da Systêxtil. Recebi seu contato, poderia me explicar melhor o que precisa?"</p>
+            <p><strong>WhatsApp ativo / Ligação:</strong> "Somos um ERP especializado na gestão de empresas da cadeia têxtil e da moda, com mais de 30 anos de mercado."</p>
+            <span class="tag">Autoridade: marcas como Lunelli, LIVE!, Karsten e Capricórnio usam a solução.</span>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>Checklist de qualificação (SDR)</summary>
+          <div class="ref-body">
+            <p>Qual setor você atua? Qual o segmento dentro da cadeia têxtil/moda?</p>
+            <p>Já usam algum ERP? Se sim, qual?</p>
+            <p>Quantos usuários simultâneos utilizam ou utilizarão o sistema?</p>
+            <p>Há alguma demanda específica ou desafio atual que possamos ajudar a resolver?</p>
+            <span class="tag">Registrar canal de origem e e-mail/telefone do contato na ficha antes de encaminhar.</span>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>Encerramento — qualificado</summary>
+          <div class="ref-body">
+            <p>"Encaminharei seu contato para o executivo de vendas FULANO, que entrará em contato para possíveis dúvidas. Desde já agradeço e me coloco à disposição."</p>
+          </div>
+        </details>
+        <details class="ref">
+          <summary>Encerramento — desqualificado (funil de nutrição)</summary>
+          <div class="ref-body">
+            <p>"Agradecemos muito o seu interesse na Systêxtil. Neste momento entendemos que talvez não seja o timing ideal, mas seguimos à disposição para futuras demandas. Enquanto isso, te convido a acompanhar nossos conteúdos nas redes sociais."</p>
+            <span class="tag">Marcar status da ficha como "Em nutrição" (não "Descartada").</span>
+          </div>
+        </details>
+      </div>
+
       <div class="card">
         <h2>Roteiro de apoio</h2>
         <p class="side-note">Consulte durante a ligação — não precisa seguir na ordem exata.</p>
@@ -504,6 +563,7 @@
             <option value="">Todos</option>
             <option>Rascunho</option>
             <option>Em andamento</option>
+            <option>Em nutrição</option>
             <option>Ganha</option>
             <option>Perdida</option>
             <option>Descartada</option>
@@ -514,8 +574,20 @@
       </div>
       <div class="row3">
         <div><label for="hf-uf">UF</label><select id="hf-uf"><option value="">Todas</option><option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option><option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option><option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option><option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option><option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option><option>SE</option><option>TO</option></select></div>
+        <div>
+          <label for="hf-canal">Canal de origem</label>
+          <select id="hf-canal">
+            <option value="">Todos</option>
+            <option>Site</option>
+            <option>WhatsApp receptivo</option>
+            <option>WhatsApp ativo</option>
+            <option>Ligação ativa</option>
+            <option>E-mail</option>
+            <option>Indicação</option>
+            <option>Outro</option>
+          </select>
+        </div>
         <div id="hfDelWrap" class="hidden"><label for="hf-excluidas">Excluídas</label><select id="hf-excluidas"><option value="">Ocultar</option><option value="1">Mostrar só excluídas</option></select></div>
-        <div></div>
       </div>
       <div class="row3">
         <div><label for="hf-de">Criado de</label><input type="date" id="hf-de"></div>
@@ -579,7 +651,7 @@
 
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  var ids = ['f-empresa','f-contato','f-cargo','f-cidade','f-uf','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
+  var ids = ['f-empresa','f-contato','f-contato-email','f-contato-telefone','f-canal','f-cargo','f-cidade','f-uf','f-segmento','f-erp','f-produto','f-timeline','f-concorrencia',
     'f-faturamento','f-num-usuarios','f-sazonalidade','f-stack','f-obs','f-obs-sucessao','f-status','f-proxima-contato','f-tentativas'];
   var crits = ['perfil','complexidade','dor','momento','decisor','investimento','maturidade','porte'];
   var CUT_A = 33, CUT_B = 23;
@@ -946,12 +1018,29 @@
   }
 
   var fieldToColumn = {
-    'f-empresa':'empresa', 'f-contato':'contato', 'f-cargo':'cargo', 'f-cidade':'cidade', 'f-uf':'uf', 'f-segmento':'segmento',
+    'f-empresa':'empresa', 'f-contato':'contato', 'f-contato-email':'contato_email', 'f-contato-telefone':'contato_telefone',
+    'f-canal':'canal', 'f-cargo':'cargo', 'f-cidade':'cidade', 'f-uf':'uf', 'f-segmento':'segmento',
     'f-erp':'erp', 'f-produto':'produto', 'f-timeline':'timeline', 'f-concorrencia':'concorrencia',
     'f-faturamento':'faturamento_faixa', 'f-num-usuarios':'num_usuarios', 'f-sazonalidade':'sazonalidade',
     'f-stack':'stack_atual', 'f-obs':'obs', 'f-obs-sucessao':'obs_sucessao', 'f-status':'status',
     'f-proxima-contato':'proxima_contato', 'f-tentativas':'tentativas'
   };
+
+  // apresentacao/proposta: guardam o timestamp original (ou null) para não reenviar a mesma data a cada save
+  var materiaisEnviados = { apresentacao: null, proposta: null };
+  function renderMaterialLabel(spanId, iso){
+    $(spanId).textContent = iso ? ('em ' + fmtDate(iso)) : '';
+  }
+  function toggleMaterial(key, checkboxId, spanId){
+    if ($(checkboxId).checked) {
+      if (!materiaisEnviados[key]) materiaisEnviados[key] = new Date().toISOString();
+    } else {
+      materiaisEnviados[key] = null;
+    }
+    renderMaterialLabel(spanId, materiaisEnviados[key]);
+  }
+  $('f-apresentacao-enviada').addEventListener('change', function(){ toggleMaterial('apresentacao', 'f-apresentacao-enviada', 'apresentacaoData'); });
+  $('f-proposta-enviada').addEventListener('change', function(){ toggleMaterial('proposta', 'f-proposta-enviada', 'propostaData'); });
 
   function applyFormData(row){
     $('f-vendedor').value = row.vendedor || '';
@@ -965,6 +1054,12 @@
     });
     $('flag-financeiro').checked = !!row.flag_financeiro;
     $('flag-aderencia').checked = !!row.flag_aderencia;
+    materiaisEnviados.apresentacao = row.apresentacao_enviada_em || null;
+    materiaisEnviados.proposta = row.proposta_enviada_em || null;
+    $('f-apresentacao-enviada').checked = !!materiaisEnviados.apresentacao;
+    $('f-proposta-enviada').checked = !!materiaisEnviados.proposta;
+    renderMaterialLabel('apresentacaoData', materiaisEnviados.apresentacao);
+    renderMaterialLabel('propostaData', materiaisEnviados.proposta);
     isDirty = false;
     computeAndRender();
   }
@@ -976,6 +1071,12 @@
     crits.forEach(function(c){ document.querySelector('.crit[data-crit="'+c+'"]').value = ''; });
     $('flag-financeiro').checked = false;
     $('flag-aderencia').checked = false;
+    materiaisEnviados.apresentacao = null;
+    materiaisEnviados.proposta = null;
+    $('f-apresentacao-enviada').checked = false;
+    $('f-proposta-enviada').checked = false;
+    renderMaterialLabel('apresentacaoData', null);
+    renderMaterialLabel('propostaData', null);
     currentEditId = null;
     isDirty = false;
     refreshAuditBtn();
@@ -1011,6 +1112,7 @@
       vendedor: $('hf-vendedor').value.trim(),
       empresa: $('hf-empresa').value.trim(),
       uf: $('hf-uf').value,
+      canal: $('hf-canal').value,
       excluidas: $('hf-excluidas').value,
       de: $('hf-de').value,
       ate: $('hf-ate').value
@@ -1027,6 +1129,7 @@
     if (f.vendedor) q = q.ilike('vendedor', likePattern(f.vendedor));
     if (f.empresa) q = q.ilike('empresa', likePattern(f.empresa));
     if (f.uf) q = q.eq('uf', f.uf);
+    if (f.canal) q = q.eq('canal', f.canal);
     if (f.de) q = q.gte('created_at', new Date(f.de + 'T00:00:00').toISOString());
     if (f.ate) {
       var fim = new Date(f.ate + 'T00:00:00'); fim.setDate(fim.getDate() + 1);
@@ -1050,12 +1153,12 @@
     histDebounce = setTimeout(function(){ loadHistory(true); }, 300);
   }
 
-  ['hf-status','hf-vendedor','hf-empresa','hf-uf','hf-excluidas','hf-de','hf-ate'].forEach(function(id){
+  ['hf-status','hf-vendedor','hf-empresa','hf-uf','hf-canal','hf-excluidas','hf-de','hf-ate'].forEach(function(id){
     $(id).addEventListener('input', scheduleHistoryReload);
     $(id).addEventListener('change', scheduleHistoryReload);
   });
   $('hfClearBtn').addEventListener('click', function(){
-    $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = ''; $('hf-uf').value = ''; $('hf-excluidas').value = '';
+    $('hf-status').value = ''; $('hf-vendedor').value = ''; $('hf-empresa').value = ''; $('hf-uf').value = ''; $('hf-canal').value = ''; $('hf-excluidas').value = '';
     $('hf-de').value = ''; $('hf-ate').value = '';
     loadHistory(true);
   });
@@ -1221,9 +1324,12 @@
       var sim = function(v){ return v ? 'Sim' : 'Não'; };
       var colunas = [
         ['Criada em', function(r){ return fmtDateTime(r.created_at); }],
+        ['Canal de origem', function(r){ return r.canal; }],
         ['Vendedor', function(r){ return r.vendedor; }],
         ['Empresa', function(r){ return r.empresa; }],
         ['Contato', function(r){ return r.contato; }],
+        ['E-mail do contato', function(r){ return r.contato_email; }],
+        ['Telefone do contato', function(r){ return r.contato_telefone; }],
         ['Cargo', function(r){ return r.cargo; }],
         ['Cidade', function(r){ return r.cidade; }],
         ['UF', function(r){ return r.uf; }],
@@ -1243,6 +1349,8 @@
         ['Tentativas', function(r){ return r.tentativas; }],
         ['Incompatibilidade financeira', function(r){ return sim(r.flag_financeiro); }],
         ['Sem aderência técnica', function(r){ return sim(r.flag_aderencia); }],
+        ['Apresentação enviada', function(r){ return r.apresentacao_enviada_em ? fmtDateTime(r.apresentacao_enviada_em) : 'Não'; }],
+        ['Proposta enviada', function(r){ return r.proposta_enviada_em ? fmtDateTime(r.proposta_enviada_em) : 'Não'; }],
         ['Observações comerciais', function(r){ return r.obs; }],
         ['Risco de sucessão/família', function(r){ return r.obs_sucessao; }]
       ];
@@ -1332,7 +1440,7 @@
       { label:'A — Qualificado', value:cls.A, cls:'A' }, { label:'B — Maturação', value:cls.B, cls:'B' },
       { label:'C — Desqualificado', value:cls.C, cls:'C' }, { label:'Incompleta', value:cls.I, cls:'I' }
     ]);
-    var ordem = ['Rascunho','Em andamento','Ganha','Perdida','Descartada'];
+    var ordem = ['Rascunho','Em andamento','Em nutrição','Ganha','Perdida','Descartada'];
     renderBars($('dashStatusBars'), ordem.filter(function(k){ return st[k]; }).map(function(k){ return { label:k, value:st[k] }; }));
     if (isGestor) {
       renderBars($('dashVend'), Object.keys(vend).sort(function(a, b){ return vend[b] - vend[a]; })
@@ -1367,7 +1475,9 @@
     try{
       var d = collectFormData();
       var record = {
-        vendedor: d['f-vendedor'], empresa: d['f-empresa'], contato: d['f-contato'], cargo: d['f-cargo'],
+        vendedor: d['f-vendedor'], empresa: d['f-empresa'], contato: d['f-contato'],
+        contato_email: d['f-contato-email'] || null, contato_telefone: d['f-contato-telefone'] || null,
+        canal: d['f-canal'] || null, cargo: d['f-cargo'],
         cidade: d['f-cidade'], uf: d['f-uf'] || null, segmento: d['f-segmento'], erp: d['f-erp'],
         produto: d['f-produto'], timeline: d['f-timeline'], concorrencia: d['f-concorrencia'],
         faturamento_faixa: d['f-faturamento'], num_usuarios: toIntOrNull(d['f-num-usuarios']),
@@ -1375,6 +1485,7 @@
         obs: d['f-obs'], obs_sucessao: d['f-obs-sucessao'], status: d['f-status'] || 'Rascunho',
         proxima_contato: d['f-proxima-contato'] || null, tentativas: toIntOrNull(d['f-tentativas']),
         flag_financeiro: d.flag_financeiro, flag_aderencia: d.flag_aderencia,
+        apresentacao_enviada_em: materiaisEnviados.apresentacao, proposta_enviada_em: materiaisEnviados.proposta,
         total: d.total, classificacao: d.classificacao, classificacao_label: d.classificacao_label
       };
       crits.forEach(function(c){ record['crit_'+c] = d['crit_'+c]; });
@@ -1412,8 +1523,11 @@
     var lines = [
       'QUALIFICAÇÃO COMERCIAL — LEAD',
       'Vendedor: ' + d['f-vendedor'],
+      'Canal de origem: ' + d['f-canal'],
       'Empresa: ' + d['f-empresa'],
       'Contato: ' + d['f-contato'],
+      'E-mail do contato: ' + d['f-contato-email'],
+      'Telefone do contato: ' + d['f-contato-telefone'],
       'Cargo: ' + d['f-cargo'],
       'Cidade/UF: ' + d['f-cidade'] + (d['f-uf'] ? ' / ' + d['f-uf'] : ''),
       'Produto de interesse: ' + d['f-produto'],
