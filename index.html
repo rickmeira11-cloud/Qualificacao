@@ -437,8 +437,8 @@
         <details class="ref">
           <summary>Abertura por canal</summary>
           <div class="ref-body">
-            <p><strong>Site / WhatsApp receptivo:</strong> "Boa tarde! Me chamo Pedro e faço parte do time comercial da Systêxtil. Recebi seu contato, poderia me explicar melhor o que precisa?"</p>
-            <p><strong>WhatsApp ativo / Ligação:</strong> "Somos um ERP especializado na gestão de empresas da cadeia têxtil e da moda, com mais de 30 anos de mercado."</p>
+            <p><strong>Site / WhatsApp receptivo:</strong> "Boa tarde! Me chamo <span id="refNomeVendedorSdr">[seu nome]</span> e faço parte do time comercial da Systêxtil. Recebi seu contato, poderia me explicar melhor o que precisa?"</p>
+            <p><strong>WhatsApp ativo / Ligação:</strong> "Somos um ERP especializado na gestão de empresas da cadeia têxtil e da moda, com 35 anos de mercado."</p>
             <span class="tag">Autoridade: marcas como Lunelli, LIVE!, Karsten e Capricórnio usam a solução.</span>
           </div>
         </details>
@@ -718,6 +718,7 @@
     $('userMenuBtn').textContent = (currentUserEmail || 'Usuário') + ' ▾';
     $('f-vendedor').value = firstNameFromEmail(currentLoginEmail);
     $('refNomeVendedor').textContent = firstNameFromEmail(currentLoginEmail) || '[seu nome]';
+    $('refNomeVendedorSdr').textContent = firstNameFromEmail(currentLoginEmail) || '[seu nome]';
     var sess = await sb.auth.getSession();
     var meta = sess.data && sess.data.session && sess.data.session.user && sess.data.session.user.app_metadata;
     isGestor = !!meta && meta.role === 'gestor';
