@@ -433,6 +433,7 @@
             <select id="f-status">
               <option>Rascunho</option>
               <option>Em andamento</option>
+              <option>Aguardando cliente</option>
               <option>Em nutrição</option>
               <option>Ganha</option>
               <option>Perdida</option>
@@ -642,6 +643,7 @@
             <option value="">Todos</option>
             <option>Rascunho</option>
             <option>Em andamento</option>
+            <option>Aguardando cliente</option>
             <option>Em nutrição</option>
             <option>Ganha</option>
             <option>Perdida</option>
@@ -1476,7 +1478,7 @@
     var d = new Date();
     var hoje = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     var res = await sb.from('leads').select('*').is('deleted_at', null).lte('proxima_contato', hoje)
-      .in('status', ['Rascunho','Em andamento','Em nutrição']).order('proxima_contato', { ascending:true }).limit(20);
+      .in('status', ['Rascunho','Em andamento','Aguardando cliente','Em nutrição']).order('proxima_contato', { ascending:true }).limit(20);
     var card = $('agendaCard'), list = $('agendaList');
     list.innerHTML = '';
     if (res.error || !res.data || !res.data.length) { card.classList.add('hidden'); return; }
@@ -1719,7 +1721,7 @@
       { label:'A — Qualificado', value:cls.A, cls:'A' }, { label:'B — Maturação', value:cls.B, cls:'B' },
       { label:'C — Desqualificado', value:cls.C, cls:'C' }, { label:'Incompleta', value:cls.I, cls:'I' }
     ]);
-    var ordem = ['Rascunho','Em andamento','Em nutrição','Ganha','Perdida','Descartada'];
+    var ordem = ['Rascunho','Em andamento','Aguardando cliente','Em nutrição','Ganha','Perdida','Descartada'];
     renderBars($('dashStatusBars'), ordem.filter(function(k){ return st[k]; }).map(function(k){
       var pct = rows.length ? Math.round(st[k] / rows.length * 100) : 0;
       return { label:k + ' — ' + pct + '% do total', value:st[k] };
@@ -1781,7 +1783,7 @@
   }
   $('dash-periodo').addEventListener('change', loadDash);
 
-  var KANBAN_STATUSES = ['Rascunho','Em andamento','Em nutrição'];
+  var KANBAN_STATUSES = ['Rascunho','Em andamento','Aguardando cliente','Em nutrição'];
   async function loadKanban(){
     var col = $('dashKanban');
     col.innerHTML = 'Carregando...';
