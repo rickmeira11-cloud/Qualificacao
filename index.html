@@ -471,8 +471,10 @@
           <button class="copy-btn" id="newBtn" type="button">Nova ficha</button>
           <button class="copy-btn" id="copyBtn" type="button">Copiar ficha</button>
           <button class="copy-btn hidden" id="auditBtn" type="button">Alterações</button>
+          <button class="copy-btn hidden" id="rdSyncBtn" type="button">Enviar para RD CRM</button>
         </div>
         <p class="side-note" id="saveStatus" style="margin-top:8px;" aria-live="polite"></p>
+        <p class="side-note" id="rdSyncStatus" style="margin-top:4px;" aria-live="polite"></p>
       </div>
     </div>
 
@@ -874,6 +876,7 @@
   }
   function refreshAuditBtn(){
     $('auditBtn').classList.toggle('hidden', !(isGestor && currentEditId));
+    $('rdSyncBtn').classList.toggle('hidden', !currentEditId);
   }
 
   var AUDIT_IGNORE = { updated_at:1, updated_by:1 };
@@ -911,6 +914,25 @@
     });
   }
   $('auditBtn').addEventListener('click', openAudit);
+  $('rdSyncBtn').addEventListener('click', async function(){
+    if (!currentEditId) return;
+    $('rdSyncBtn').disabled = true;
+    $('rdSyncStatus').textContent = 'Enviando para o RD CRM...';
+    try{
+      var res = await sb.functions.invoke('rd-sync', { body: { leadId: currentEditId } });
+      if (res.error || !res.data || !res.data.ok) {
+        var msg = (res.data && res.data.error) || (res.error && res.error.message) || 'Erro desconhecido.';
+        $('rdSyncStatus').textContent = 'Não foi possível enviar: ' + msg;
+      } else {
+        $('rdSyncStatus').textContent = 'Enviado ao RD CRM com sucesso.';
+      }
+    }catch(e){
+      console.error(e);
+      $('rdSyncStatus').textContent = 'Não foi possível enviar ao RD CRM agora.';
+    }finally{
+      $('rdSyncBtn').disabled = false;
+    }
+  });
   $('closeAuditBtn').addEventListener('click', function(){ hideModal($('auditModal')); });
   $('auditModal').addEventListener('click', function(e){ if (e.target === this) hideModal(this); });
 
@@ -1242,6 +1264,7 @@
     if (row.created_at) eventos.push({ ts:row.created_at, texto:'Ficha criada' });
     if (row.apresentacao_enviada_em) eventos.push({ ts:row.apresentacao_enviada_em, texto:'Apresentação enviada' });
     if (row.proposta_enviada_em) eventos.push({ ts:row.proposta_enviada_em, texto:'Proposta enviada' });
+    if (row.rd_enviado_em) eventos.push({ ts:row.rd_enviado_em, texto:'Enviado para o RD CRM' });
     if (row.updated_at && row.updated_at !== row.created_at) eventos.push({ ts:row.updated_at, texto:'Última atualização (status: ' + (row.status || 'Rascunho') + ')' });
     if (row.proxima_contato) eventos.push({ ts:row.proxima_contato + 'T00:00:00', texto:'Próximo contato agendado', futuro:true });
     eventos.sort(function(a, b){ return new Date(a.ts) - new Date(b.ts); });
